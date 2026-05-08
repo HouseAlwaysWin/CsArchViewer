@@ -1,0 +1,16 @@
+[
+  {
+    "source": "CsArchViewer.Core*",
+    "forbidden": "*Avalonia*",
+    "severity": "Error",
+    "ruleCategory": "Layering",
+    "message": "Core layer cannot depend on Avalonia"
+  },
+  {
+    "source": "CsArchViewer.DotNet*",
+    "forbidden": "*Avalonia*",
+    "severity": "Warning",
+    "ruleCategory": "Layering",
+    "message": "Analyzer layer cannot depend on UI"
+  }
+]

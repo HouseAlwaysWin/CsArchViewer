@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CsArchViewer.Avalonia",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/CsArchViewer.Avalonia/bin/Debug/net10.0/CsArchViewer.Avalonia.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/CsArchViewer.Avalonia/bin/Debug/net10.0"
+    }
+  ]
+}

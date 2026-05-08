@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CsArchViewer.Core\CsArchViewer.Core.csproj" />
+    <ProjectReference Include="..\CsArchViewer.DotNet.Roslyn\CsArchViewer.DotNet.Roslyn.csproj" />
+    <ProjectReference Include="..\CsArchViewer.DotNet.SymbolAnalysis\CsArchViewer.DotNet.SymbolAnalysis.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

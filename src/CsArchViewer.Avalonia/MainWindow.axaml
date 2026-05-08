@@ -1,0 +1,223 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:CsArchViewer.Avalonia.Views"
+        xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
+        xmlns:core="clr-namespace:CsArchViewer.Core.Models;assembly=CsArchViewer.Core"
+        mc:Ignorable="d"
+        d:DesignWidth="1400"
+        d:DesignHeight="820"
+        x:Class="CsArchViewer.Avalonia.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="CsArchViewer - .NET Architecture Viewer">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Padding="10" BorderBrush="#2E3748" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Open Folder" Click="OpenFolder_OnClick" />
+        <Button Content="Reload" Click="Reload_OnClick" />
+        <Button Content="Export Mermaid" Click="ExportMermaid_OnClick" />
+        <Button Content="Export JSON" Click="ExportJson_OnClick" />
+        <Button Content="Export DOT" Click="ExportDot_OnClick" />
+        <ComboBox Width="190"
+                  ItemsSource="{Binding AvailableGraphTypes}"
+                  SelectedItem="{Binding SelectedGraphType, Mode=TwoWay}" />
+        <ComboBox Width="130"
+                  ItemsSource="{Binding AvailableTypeFilters}"
+                  SelectedItem="{Binding SelectedTypeFilter, Mode=TwoWay}" />
+        <CheckBox Content="Show line count on nodes"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding ShowLineCountOnNodes, Mode=TwoWay}" />
+        <TextBox Width="280"
+                 PlaceholderText="Search project..."
+                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+        <ProgressBar Width="120"
+                     Height="14"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsAnalyzing}" />
+        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding Status}" />
+      </StackPanel>
+    </Border>
+
+    <Border DockPanel.Dock="Bottom" Height="180" BorderBrush="#2E3748" BorderThickness="0,1,0,0" Padding="8" Background="#0B1220">
+      <Grid ColumnDefinitions="2*,*,*" RowDefinitions="Auto,*">
+        <TextBlock Grid.Column="0" Text="Diagnostics" FontWeight="Bold" />
+        <TextBlock Grid.Column="1" Text="Analysis Status" FontWeight="Bold" />
+        <TextBlock Grid.Column="2" Text="Background Tasks" FontWeight="Bold" />
+
+        <ListBox Grid.Row="1" Grid.Column="0" Margin="0,6,8,0" ItemsSource="{Binding Diagnostics}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Spacing="2" Margin="2">
+                <TextBlock Text="{Binding Severity}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Type}" />
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Margin="0,6,8,0">
+          <TextBlock Text="{Binding AnalysisStatus}" TextWrapping="Wrap" />
+        </ScrollViewer>
+        <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" Text="{Binding BackgroundTaskCount}" />
+      </Grid>
+    </Border>
+
+    <Grid ColumnDefinitions="280,*,360">
+      <Border Grid.Column="0" BorderBrush="#2E3748" BorderThickness="0,0,1,0">
+        <StackPanel>
+          <TextBlock FontWeight="Bold" Margin="10,10,10,4" Text="Nodes" />
+          <ListBox Margin="10,0,10,10"
+                   ItemsSource="{Binding ListedNodes}"
+                   SelectedItem="{Binding SelectedListedNode, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="core:ArchitectureNode">
+                <StackPanel Margin="4">
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                  <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Type}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="1" Background="#111827">
+        <Grid RowDefinitions="Auto,*">
+          <Border Background="#0F172A" BorderBrush="#1E293B" BorderThickness="0,0,0,1" Padding="8">
+            <WrapPanel Orientation="Horizontal" ItemHeight="18" ItemWidth="120">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Library" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#065F46" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Exe / WinExe" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#4C1D95" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Folder" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#334155" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="File" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#7C2D12" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Solution" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#14B8A6" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Package" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#0F766E" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Namespace" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#B91C1C" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Violation" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#1D4ED8" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Type" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#38BDF8" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Interface" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#7C3AED" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Struct" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#BE185D" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Enum" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" Background="#10B981" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Record" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border Width="14" Height="14" BorderBrush="#F59E0B" BorderThickness="2" CornerRadius="3" />
+                <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Search Hit" />
+              </StackPanel>
+            </WrapPanel>
+          </Border>
+          <views:GraphView x:Name="GraphViewControl"
+                           Grid.Row="1"
+                           DataContext="{Binding Graph}" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="2" BorderBrush="#2E3748" BorderThickness="1,0,0,0">
+        <ScrollViewer>
+          <StackPanel Margin="10" Spacing="8">
+            <TextBlock FontWeight="Bold" Text="Node Details" />
+            <TextBlock Text="Project Name" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ProjectName}" TextWrapping="Wrap" />
+            <TextBlock Text="Node Type" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.NodeType}" TextWrapping="Wrap" />
+            <TextBlock Text="Full Path" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.FullPath}" TextWrapping="Wrap" />
+            <TextBlock Text="TargetFramework" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.TargetFramework}" />
+            <TextBlock Text="OutputType" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.OutputType}" />
+            <TextBlock Text="ProjectReferences" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ProjectReferences}" TextWrapping="Wrap" />
+            <TextBlock Text="PackageReferences" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.PackageReferences}" TextWrapping="Wrap" />
+            <TextBlock Text="Extension" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Extension}" TextWrapping="Wrap" />
+            <TextBlock Text="Size (bytes)" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Size}" TextWrapping="Wrap" />
+            <TextBlock Text="Last Modified" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.LastModified}" TextWrapping="Wrap" />
+            <TextBlock Text="Child Count" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ChildCount}" TextWrapping="Wrap" />
+            <TextBlock Text="Referenced Namespaces" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ReferencedNamespaces}" TextWrapping="Wrap" />
+            <TextBlock Text="Referenced By" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ReferencedBy}" TextWrapping="Wrap" />
+            <TextBlock Text="Rule" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Rule}" TextWrapping="Wrap" />
+            <TextBlock Text="Source" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Source}" TextWrapping="Wrap" />
+            <TextBlock Text="Target" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Target}" TextWrapping="Wrap" />
+            <TextBlock Text="Message" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.Message}" TextWrapping="Wrap" />
+            <TextBlock Text="Full Type Name" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.FullTypeName}" TextWrapping="Wrap" />
+            <TextBlock Text="Namespace" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.NamespaceName}" TextWrapping="Wrap" />
+            <TextBlock Text="File" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.File}" TextWrapping="Wrap" />
+            <TextBlock Text="Base Type" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.BaseType}" TextWrapping="Wrap" />
+            <TextBlock Text="Implemented Interfaces" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ImplementedInterfaces}" TextWrapping="Wrap" />
+            <TextBlock Text="Referenced Types" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ReferencedTypes}" TextWrapping="Wrap" />
+            <TextBlock Text="Dependency Matrix Row" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.MatrixRow}" TextWrapping="Wrap" />
+            <TextBlock Text="Depends On" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.DependsOn}" TextWrapping="Wrap" />
+            <TextBlock Text="Incoming Dependencies" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.DependencyIncoming}" TextWrapping="Wrap" />
+            <TextBlock Text="Dependency Count" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.DependencyCount}" TextWrapping="Wrap" />
+            <TextBlock Text="Circular Dependency Count" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.CircularDependencyCount}" TextWrapping="Wrap" />
+            <TextBlock Text="Violation Count" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.ViolationCount}" TextWrapping="Wrap" />
+            <TextBlock Text="Line Count" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding NodeDetails.LineCount}" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

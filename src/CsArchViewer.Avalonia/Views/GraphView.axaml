@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:CsArchViewer.Avalonia.Controls"
+             xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:DataType="vm:GraphViewModel"
+             x:Class="CsArchViewer.Avalonia.Views.GraphView">
+  <controls:GraphCanvas x:Name="Canvas"
+                        Nodes="{Binding Nodes}"
+                        Edges="{Binding Edges}"
+                        RenderVersion="{Binding RenderVersion}"
+                        AutoFitVersion="{Binding AutoFitVersion}"
+                        ShowLineCountOnNodes="{Binding ShowLineCountOnNodes}"
+                        SelectedNode="{Binding SelectedNode, Mode=TwoWay}" />
+</UserControl>
