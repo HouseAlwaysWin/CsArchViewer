@@ -74,7 +74,7 @@
             </DockPanel>
           </Border>
 
-          <Grid RowDefinitions="*,6,180" MinHeight="200">
+          <Grid RowDefinitions="*,6,Auto" MinHeight="200">
           <Grid Grid.Row="0"
                 ColumnDefinitions="260,6,*,6,300"
                 MinHeight="120">
@@ -266,16 +266,16 @@
                         ResizeDirection="Rows" />
 
           <Border Grid.Row="2"
-                  MinHeight="100"
                   BorderBrush="#2E3748"
                   BorderThickness="0,1,0,0"
                   Padding="8"
                   Background="#0B1220">
-            <Grid RowDefinitions="Auto,*">
-              <TextBlock Text="Diagnostics" FontWeight="Bold" />
-
-              <ListBox Grid.Row="1"
-                       Margin="0,6,0,0"
+            <Expander IsExpanded="False">
+              <Expander.Header>
+                <TextBlock Text="Diagnostics" FontWeight="Bold" />
+              </Expander.Header>
+              <ListBox Margin="0,8,0,0"
+                       MaxHeight="220"
                        ItemsSource="{Binding Diagnostics}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
@@ -289,7 +289,7 @@
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
-            </Grid>
+            </Expander>
           </Border>
         </Grid>
         </DockPanel>
