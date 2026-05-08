@@ -83,7 +83,20 @@ public sealed class LocalizationService
             ["IncrementalUpdatedTemplate"] = "增量分析已更新: {0}",
             ["AnalysisFailedTemplate"] = "分析失敗: {0}",
             ["AnalyzeFailedTemplate"] = "分析失敗: {0}",
-            ["FolderNoChildTemplate"] = "資料夾 '{0}' 沒有可顯示的子項。"
+            ["FolderNoChildTemplate"] = "資料夾 '{0}' 沒有可顯示的子項。",
+            ["SymbolExplorerTab"] = "符號瀏覽",
+            ["SymbolExplorerSearchPlaceholder"] = "搜尋型別、方法、命名空間…",
+            ["SymbolExplorerSearch"] = "搜尋",
+            ["SymbolExplorerDetailsTab"] = "符號詳情",
+            ["SymbolExplorerFindRefs"] = "尋找參考",
+            ["SymbolExplorerGoToDef"] = "移至定義",
+            ["SymbolExplorerTypeMembersTitle"] = "型別成員（輕量分析）",
+            ["SymbolExplorerMethodMetaTitle"] = "方法詮釋資料",
+            ["BottomPanelDiagnosticsTab"] = "診斷 / 檔案排行",
+            ["SymbolExplorerReferencesTab"] = "符號參考結果",
+            ["SymbolExplorerJumpOpen"] = "開啟選取位置",
+            ["SymbolExplorerNoIndex"] = "符號索引尚未就緒；請先完成分析。",
+            ["SymbolExplorerNoSelection"] = "請先選取符號。"
         },
         ["en-US"] = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -164,7 +177,20 @@ public sealed class LocalizationService
             ["IncrementalUpdatedTemplate"] = "Incremental analysis updated: {0}",
             ["AnalysisFailedTemplate"] = "Analysis failed: {0}",
             ["AnalyzeFailedTemplate"] = "Analyze failed: {0}",
-            ["FolderNoChildTemplate"] = "Folder '{0}' has no child items to display."
+            ["FolderNoChildTemplate"] = "Folder '{0}' has no child items to display.",
+            ["SymbolExplorerTab"] = "Symbol Explorer",
+            ["SymbolExplorerSearchPlaceholder"] = "Search types, methods, namespaces…",
+            ["SymbolExplorerSearch"] = "Search",
+            ["SymbolExplorerDetailsTab"] = "Symbol Details",
+            ["SymbolExplorerFindRefs"] = "Find References",
+            ["SymbolExplorerGoToDef"] = "Go To Definition",
+            ["SymbolExplorerTypeMembersTitle"] = "Type members (lightweight)",
+            ["SymbolExplorerMethodMetaTitle"] = "Method metadata",
+            ["BottomPanelDiagnosticsTab"] = "Diagnostics / Top Files",
+            ["SymbolExplorerReferencesTab"] = "Symbol References",
+            ["SymbolExplorerJumpOpen"] = "Open Selected",
+            ["SymbolExplorerNoIndex"] = "Symbol index not ready; finish analysis first.",
+            ["SymbolExplorerNoSelection"] = "Select a symbol first."
         }
     };
 

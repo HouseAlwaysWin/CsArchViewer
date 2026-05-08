@@ -5,6 +5,7 @@
         xmlns:views="clr-namespace:CsArchViewer.Avalonia.Views"
         xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
         xmlns:core="clr-namespace:CsArchViewer.Core.Models;assembly=CsArchViewer.Core"
+        xmlns:symexp="clr-namespace:CsArchViewer.DotNet.SymbolExplorer.Models;assembly=CsArchViewer.DotNet.SymbolExplorer"
         mc:Ignorable="d"
         d:DesignWidth="1400"
         d:DesignHeight="820"
@@ -94,24 +95,54 @@
                     MinWidth="160"
                     BorderBrush="#2E3748"
                     BorderThickness="0,0,1,0">
-              <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Top"
-                           FontWeight="Bold"
-                           Margin="10,10,10,4"
-                           Text="{Binding NodesTitleText}" />
-                <ListBox Margin="10,0,10,10"
-                         ItemsSource="{Binding ListedNodes}"
-                         SelectedItem="{Binding SelectedListedNode, Mode=TwoWay}">
-                  <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="core:ArchitectureNode">
-                      <StackPanel Margin="4">
-                        <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                        <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Type}" />
-                      </StackPanel>
-                    </DataTemplate>
-                  </ListBox.ItemTemplate>
-                </ListBox>
-              </DockPanel>
+              <TabControl Margin="4">
+                <TabItem Header="{Binding NodesTitleText}" FontWeight="SemiBold">
+                  <DockPanel LastChildFill="True">
+                    <ListBox Margin="6"
+                             ItemsSource="{Binding ListedNodes}"
+                             SelectedItem="{Binding SelectedListedNode, Mode=TwoWay}">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="core:ArchitectureNode">
+                          <StackPanel Margin="4">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                            <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Type}" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </DockPanel>
+                </TabItem>
+                <TabItem Header="{Binding SymbolExplorerTabText}" FontWeight="SemiBold">
+                  <DockPanel LastChildFill="True">
+                    <DockPanel DockPanel.Dock="Top"
+                               Margin="8,8,8,4"
+                               LastChildFill="True">
+                      <Button DockPanel.Dock="Right"
+                              Margin="8,0,0,0"
+                              Padding="10,4"
+                              Content="{Binding SymbolExplorerSearchButtonText}"
+                              Click="SymbolExplorerSearch_OnClick" />
+                      <TextBox VerticalAlignment="Center"
+                               PlaceholderText="{Binding SymbolExplorerSearchPlaceholderText}"
+                               Text="{Binding SymbolExplorerSearchQuery}" />
+                    </DockPanel>
+                    <ListBox Margin="8,0,8,8"
+                             ItemsSource="{Binding SymbolExplorerResults}"
+                             SelectedItem="{Binding SelectedExplorerSymbol, Mode=TwoWay}"
+                             SelectionChanged="SymbolExplorerResults_OnSelectionChanged">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="symexp:SymbolInfoModel">
+                          <StackPanel Margin="2">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                            <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Kind}" />
+                            <TextBlock FontSize="10" Foreground="#64748B" Text="{Binding Namespace}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </DockPanel>
+                </TabItem>
+              </TabControl>
             </Border>
 
             <GridSplitter Grid.Column="1"
@@ -125,72 +156,72 @@
                         BorderBrush="#1E293B"
                         BorderThickness="0,0,0,1"
                         Padding="8">
-                  <WrapPanel Orientation="Horizontal" ItemHeight="18" ItemWidth="120">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                  <WrapPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Library" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#065F46" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Exe / WinExe" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#4C1D95" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Folder" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#334155" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="File" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#0EA5E9" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="XAML/AXAML File" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#8B5CF6" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Razor File" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#F97316" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="CSHTML File" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#7C2D12" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Solution" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#14B8A6" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Package" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#0F766E" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Namespace" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#B91C1C" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Violation" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#1D4ED8" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Type" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#38BDF8" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Interface" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#7C3AED" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Struct" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#BE185D" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Enum" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#10B981" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Record" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14"
                               BorderBrush="#F59E0B"
                               BorderThickness="2"
@@ -214,9 +245,10 @@
                     MinWidth="200"
                     BorderBrush="#2E3748"
                     BorderThickness="1,0,0,0">
-              <ScrollViewer>
-                <StackPanel Margin="10" Spacing="8">
-                  <TextBlock FontWeight="Bold" Text="{Binding NodeDetailsTitleText}" />
+              <TabControl>
+                <TabItem Header="{Binding NodeDetailsTitleText}" FontWeight="SemiBold">
+                  <ScrollViewer>
+                    <StackPanel Margin="10" Spacing="8">
                   <Expander Header="基本資訊"
                             IsExpanded="True"
                             HorizontalAlignment="Stretch"
@@ -437,7 +469,55 @@
                     </StackPanel>
                   </Expander>
                 </StackPanel>
-              </ScrollViewer>
+                  </ScrollViewer>
+                </TabItem>
+                <TabItem Header="{Binding SymbolExplorerDetailsTabText}" FontWeight="SemiBold">
+                  <ScrollViewer>
+                    <StackPanel Margin="10" Spacing="8">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{Binding SymbolExplorerFindRefsText}"
+                                Click="SymbolExplorerFindRefs_OnClick" />
+                        <Button Content="{Binding SymbolExplorerGoToDefText}"
+                                Click="SymbolExplorerGoToDef_OnClick" />
+                      </StackPanel>
+                      <TextBlock Text="{Binding ExplorerSymbolDetailsText}"
+                                 TextWrapping="Wrap"
+                                 Foreground="#CBD5E1" />
+                      <Separator Background="#2E3748" />
+                      <TextBlock FontWeight="Bold"
+                                 Text="{Binding SymbolExplorerTypeMembersTitleText}" />
+                      <TextBlock Text="{Binding ExplorerTypeMembersSummary}"
+                                 TextWrapping="Wrap"
+                                 FontSize="11"
+                                 Foreground="#94A3B8" />
+                      <ListBox Height="220"
+                               ItemsSource="{Binding ExplorerTypeMethods}"
+                               SelectedItem="{Binding SelectedExplorerMethod, Mode=TwoWay}"
+                               SelectionChanged="ExplorerMethods_OnSelectionChanged">
+                        <ListBox.ItemTemplate>
+                          <DataTemplate x:DataType="symexp:MethodInfoModel">
+                            <StackPanel Margin="2">
+                              <TextBlock FontWeight="SemiBold"
+                                         Text="{Binding Signature}"
+                                         TextWrapping="Wrap" />
+                              <TextBlock FontSize="10"
+                                         Foreground="#64748B"
+                                         Text="{Binding FilePath}"
+                                         TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
+                      <TextBlock FontWeight="Bold"
+                                 Text="{Binding SymbolExplorerMethodMetaTitleText}" />
+                      <TextBlock Text="{Binding ExplorerMethodMetadataText}"
+                                 TextWrapping="Wrap"
+                                 FontFamily="Consolas"
+                                 FontSize="11" />
+                    </StackPanel>
+                  </ScrollViewer>
+                </TabItem>
+              </TabControl>
             </Border>
           </Grid>
 
@@ -455,6 +535,8 @@
                   BorderThickness="0,1,0,0"
                   Padding="8"
                   Background="#0B1220">
+            <TabControl>
+              <TabItem Header="{Binding BottomPanelDiagnosticsTabText}" FontWeight="SemiBold">
             <Grid ColumnDefinitions="2*,6,*" RowDefinitions="Auto,*">
               <DockPanel LastChildFill="False">
                 <Button x:Name="DiagnosticsToggleButton"
@@ -519,6 +601,39 @@
                 </ListBox.ItemTemplate>
               </ListBox>
             </Grid>
+              </TabItem>
+              <TabItem Header="{Binding SymbolExplorerReferencesTabText}" FontWeight="SemiBold">
+                <DockPanel LastChildFill="True">
+                  <StackPanel DockPanel.Dock="Top"
+                              Orientation="Horizontal"
+                              Spacing="8"
+                              Margin="0,0,0,8">
+                    <Button Content="{Binding SymbolExplorerJumpOpenText}"
+                            Click="ExplorerReferencesOpen_OnClick" />
+                  </StackPanel>
+                  <ListBox ItemsSource="{Binding ExplorerReferences}"
+                           SelectedItem="{Binding SelectedExplorerReference, Mode=TwoWay}"
+                           DoubleTapped="ExplorerReferences_OnDoubleTapped">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="symexp:ReferenceInfoModel">
+                        <StackPanel Margin="2" Spacing="2">
+                          <TextBlock FontWeight="SemiBold"
+                                     Text="{Binding ReferencingSymbolDisplay}"
+                                     TextWrapping="Wrap" />
+                          <TextBlock FontSize="11"
+                                     Foreground="#94A3B8"
+                                     Text="{Binding FilePath}"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock FontSize="11"
+                                     Foreground="#64748B"
+                                     Text="{Binding LineNumber, StringFormat=Line {0}}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </TabItem>
+            </TabControl>
           </Border>
         </Grid>
         </DockPanel>

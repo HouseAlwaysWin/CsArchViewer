@@ -23,6 +23,7 @@
     <ProjectReference Include="..\CsArchViewer.Analysis\CsArchViewer.Analysis.csproj" />
     <ProjectReference Include="..\CsArchViewer.Diagnostics\CsArchViewer.Diagnostics.csproj" />
     <ProjectReference Include="..\CsArchViewer.Metrics\CsArchViewer.Metrics.csproj" />
+    <ProjectReference Include="..\CsArchViewer.DotNet.SymbolExplorer\CsArchViewer.DotNet.SymbolExplorer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

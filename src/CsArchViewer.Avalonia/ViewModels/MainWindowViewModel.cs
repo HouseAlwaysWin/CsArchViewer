@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
+using CsArchViewer.DotNet.SymbolExplorer.Models;
 using CsArchViewer.Metrics.Models;
 
 namespace CsArchViewer.Avalonia.ViewModels;
@@ -45,6 +46,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     private List<ProjectInfo> _allProjects = [];
     private Dictionary<GraphType, ArchitectureGraph> _graphs = [];
     private MetricsSummary? _metricsSummary;
+    private string _symbolExplorerSearchQuery = string.Empty;
+    private SymbolInfoModel? _selectedExplorerSymbol;
+    private MethodInfoModel? _selectedExplorerMethod;
+    private ReferenceInfoModel? _selectedExplorerReference;
+    private string _explorerSymbolDetailsText = string.Empty;
+    private string _explorerMethodMetadataText = string.Empty;
+    private string _explorerTypeMembersSummary = string.Empty;
 
     public ObservableCollection<ProjectInfo> Projects { get; } = [];
     public ObservableCollection<ArchitectureNode> ListedNodes { get; } = [];
@@ -52,6 +60,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ObservableCollection<FileLineRankItem> TopFilesByLineCount { get; } = [];
     public ObservableCollection<NamespaceMetrics> TopCoupledNamespaces { get; } = [];
     public ObservableCollection<HealthWarning> HealthWarnings { get; } = [];
+    public ObservableCollection<SymbolInfoModel> SymbolExplorerResults { get; } = [];
+    public ObservableCollection<ReferenceInfoModel> ExplorerReferences { get; } = [];
+    public ObservableCollection<MethodInfoModel> ExplorerTypeMethods { get; } = [];
     public GraphViewModel Graph { get; } = new();
     public NodeDetailsViewModel NodeDetails { get; } = new();
     public IReadOnlyList<string> AvailableTypeFilters => TypeFilterOptions;
@@ -237,6 +248,59 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string LargestNamespaceText => L("LargestNamespace");
     public string CircularDependenciesText => L("CircularDependencies");
     public string LayerViolationsText => L("LayerViolations");
+    public string SymbolExplorerTabText => L("SymbolExplorerTab");
+    public string SymbolExplorerSearchPlaceholderText => L("SymbolExplorerSearchPlaceholder");
+    public string SymbolExplorerSearchButtonText => L("SymbolExplorerSearch");
+    public string SymbolExplorerDetailsTabText => L("SymbolExplorerDetailsTab");
+    public string SymbolExplorerFindRefsText => L("SymbolExplorerFindRefs");
+    public string SymbolExplorerGoToDefText => L("SymbolExplorerGoToDef");
+    public string SymbolExplorerTypeMembersTitleText => L("SymbolExplorerTypeMembersTitle");
+    public string SymbolExplorerMethodMetaTitleText => L("SymbolExplorerMethodMetaTitle");
+    public string BottomPanelDiagnosticsTabText => L("BottomPanelDiagnosticsTab");
+    public string SymbolExplorerReferencesTabText => L("SymbolExplorerReferencesTab");
+    public string SymbolExplorerJumpOpenText => L("SymbolExplorerJumpOpen");
+
+    public string SymbolExplorerSearchQuery
+    {
+        get => _symbolExplorerSearchQuery;
+        set => SetProperty(ref _symbolExplorerSearchQuery, value);
+    }
+
+    public SymbolInfoModel? SelectedExplorerSymbol
+    {
+        get => _selectedExplorerSymbol;
+        set => SetProperty(ref _selectedExplorerSymbol, value);
+    }
+
+    public MethodInfoModel? SelectedExplorerMethod
+    {
+        get => _selectedExplorerMethod;
+        set => SetProperty(ref _selectedExplorerMethod, value);
+    }
+
+    public ReferenceInfoModel? SelectedExplorerReference
+    {
+        get => _selectedExplorerReference;
+        set => SetProperty(ref _selectedExplorerReference, value);
+    }
+
+    public string ExplorerSymbolDetailsText
+    {
+        get => _explorerSymbolDetailsText;
+        set => SetProperty(ref _explorerSymbolDetailsText, value);
+    }
+
+    public string ExplorerMethodMetadataText
+    {
+        get => _explorerMethodMetadataText;
+        set => SetProperty(ref _explorerMethodMetadataText, value);
+    }
+
+    public string ExplorerTypeMembersSummary
+    {
+        get => _explorerTypeMembersSummary;
+        set => SetProperty(ref _explorerTypeMembersSummary, value);
+    }
 
     public int MetricsTotalLoc => _metricsSummary?.TotalLoc ?? 0;
     public int MetricsTotalFiles => _metricsSummary?.TotalFiles ?? 0;
@@ -314,6 +378,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public void SetAnalysisResult(AnalysisResult result)
     {
+        ClearSymbolExplorerUi();
         _allProjects = result.Projects
             .OrderBy(project => project.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -331,6 +396,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         UpdateTopFileLineRanking();
         UpdateGraphStatus();
         ApplyMetricsOverlay();
+    }
+
+    public void ClearSymbolExplorerUi()
+    {
+        SymbolExplorerResults.Clear();
+        ExplorerReferences.Clear();
+        ExplorerTypeMethods.Clear();
+        SelectedExplorerSymbol = null;
+        SelectedExplorerMethod = null;
+        SelectedExplorerReference = null;
+        ExplorerSymbolDetailsText = string.Empty;
+        ExplorerMethodMetadataText = string.Empty;
+        ExplorerTypeMembersSummary = string.Empty;
+        SymbolExplorerSearchQuery = string.Empty;
     }
 
     public void SetMetricsSummary(MetricsSummary summary)
@@ -819,6 +898,17 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(LargestNamespaceText));
         OnPropertyChanged(nameof(CircularDependenciesText));
         OnPropertyChanged(nameof(LayerViolationsText));
+        OnPropertyChanged(nameof(SymbolExplorerTabText));
+        OnPropertyChanged(nameof(SymbolExplorerSearchPlaceholderText));
+        OnPropertyChanged(nameof(SymbolExplorerSearchButtonText));
+        OnPropertyChanged(nameof(SymbolExplorerDetailsTabText));
+        OnPropertyChanged(nameof(SymbolExplorerFindRefsText));
+        OnPropertyChanged(nameof(SymbolExplorerGoToDefText));
+        OnPropertyChanged(nameof(SymbolExplorerTypeMembersTitleText));
+        OnPropertyChanged(nameof(SymbolExplorerMethodMetaTitleText));
+        OnPropertyChanged(nameof(BottomPanelDiagnosticsTabText));
+        OnPropertyChanged(nameof(SymbolExplorerReferencesTabText));
+        OnPropertyChanged(nameof(SymbolExplorerJumpOpenText));
         OnPropertyChanged(nameof(MetricsTotalLoc));
         OnPropertyChanged(nameof(MetricsTotalFiles));
         OnPropertyChanged(nameof(MetricsLargestFile));

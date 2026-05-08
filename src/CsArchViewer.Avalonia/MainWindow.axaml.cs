@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -14,6 +15,8 @@ using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
 using CsArchViewer.DotNet;
 using CsArchViewer.Export;
+using CsArchViewer.DotNet.SymbolExplorer;
+using CsArchViewer.DotNet.SymbolExplorer.Models;
 using CsArchViewer.Metrics;
 using CsArchViewer.Metrics.Models;
 
@@ -38,6 +41,12 @@ public partial class MainWindow : Window
     private readonly MetricsCsvExporter _metricsCsvExporter = new();
     private readonly MetricsMarkdownExporter _metricsMarkdownExporter = new();
     private readonly CodeMetricsAnalyzer _codeMetricsAnalyzer = new();
+    private readonly SymbolIndexBuilder _symbolIndexBuilder = new();
+    private readonly SymbolSearchService _symbolSearchService = new();
+    private readonly ReferenceFinderService _referenceFinderService = new();
+    private readonly TypeMethodAnalyzer _typeMethodAnalyzer = new();
+    private readonly MethodMetadataAnalyzer _methodMetadataAnalyzer = new();
+    private readonly SymbolNavigationService _symbolNavigationService = new();
 
     private MetricsSummary? _latestMetricsSummary;
 
@@ -64,6 +73,7 @@ public partial class MainWindow : Window
 
             InjectDependencyExplorerMetadata(ViewModel.Graph.SelectedNode);
             ViewModel.SelectNode(ViewModel.Graph.SelectedNode);
+            _ = ExplorerAnalyzeGraphTypeAsync(ViewModel.Graph.SelectedNode);
         };
 
         GraphViewControl.NodeDoubleClicked += HandleNodeDoubleClicked;
@@ -415,6 +425,28 @@ public partial class MainWindow : Window
                 }));
                 _searchIndex.BuildIndex(update.Result);
 
+                try
+                {
+                    if (changedFiles is null || changedFiles.Count == 0)
+                    {
+                        await _symbolIndexBuilder.RebuildAsync(rootPath, token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        var csharpChanges = changedFiles
+                            .Where(p => p.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                        if (csharpChanges.Count > 0)
+                        {
+                            await _symbolIndexBuilder.UpdateFilesAsync(csharpChanges, token).ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch
+                {
+                    // Symbol index is best-effort; analysis graphs remain usable.
+                }
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     ViewModel.SetAnalysisResult(update.Result);
@@ -463,6 +495,369 @@ public partial class MainWindow : Window
         node.Metadata["DependencyCount"] = (explorer.Outgoing.Count + explorer.Incoming.Count).ToString();
         node.Metadata["CircularDependencyCount"] = explorer.CircularDependencyCount.ToString();
         node.Metadata["ViolationCount"] = explorer.ViolationCount.ToString();
+    }
+
+    private static bool IsExplorerGraphType(ArchitectureNodeType nodeType)
+    {
+        return nodeType is ArchitectureNodeType.Type or ArchitectureNodeType.Interface or ArchitectureNodeType.Struct
+            or ArchitectureNodeType.Enum or ArchitectureNodeType.Record;
+    }
+
+    private static bool IsExplorerTypeSymbolKind(ExplorerSymbolKind kind)
+    {
+        return kind is ExplorerSymbolKind.Class or ExplorerSymbolKind.Interface or ExplorerSymbolKind.Struct
+            or ExplorerSymbolKind.Enum or ExplorerSymbolKind.Record or ExplorerSymbolKind.Delegate;
+    }
+
+    private static SymbolInfoModel? MatchSymbolForGraphNode(ArchitectureNode node, IReadOnlyList<SymbolInfoModel> symbols)
+    {
+        node.Metadata.TryGetValue("Namespace", out var ns);
+        ns ??= string.Empty;
+
+        foreach (var s in symbols)
+        {
+            if (!IsExplorerTypeSymbolKind(s.Kind))
+            {
+                continue;
+            }
+
+            if (!string.Equals(s.Name, node.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (string.Equals(s.Namespace, ns, StringComparison.OrdinalIgnoreCase))
+            {
+                return s;
+            }
+        }
+
+        node.Metadata.TryGetValue("FullTypeName", out var fq);
+        fq ??= node.Id;
+        foreach (var s in symbols)
+        {
+            if (!IsExplorerTypeSymbolKind(s.Kind))
+            {
+                continue;
+            }
+
+            if (string.Equals(s.SymbolKey, fq, StringComparison.OrdinalIgnoreCase))
+            {
+                return s;
+            }
+
+            if (s.SymbolKey.EndsWith("." + node.Name, StringComparison.OrdinalIgnoreCase) &&
+                fq.Contains(node.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return s;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task ExplorerAnalyzeGraphTypeAsync(ArchitectureNode? node)
+    {
+        if (node is null || !IsExplorerGraphType(node.Type))
+        {
+            return;
+        }
+
+        var solution = _symbolIndexBuilder.CurrentSolution;
+        var symbols = _symbolIndexBuilder.Symbols;
+        if (solution is null || symbols.Count == 0)
+        {
+            return;
+        }
+
+        var hit = MatchSymbolForGraphNode(node, symbols);
+        if (hit is null)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() => ViewModel.SelectedExplorerSymbol = hit);
+        await RefreshExplorerSymbolAsync(hit).ConfigureAwait(true);
+    }
+
+    private async void SymbolExplorerSearch_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var query = ViewModel.SymbolExplorerSearchQuery?.Trim() ?? string.Empty;
+        if (_symbolIndexBuilder.Symbols.Count == 0)
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
+            return;
+        }
+
+        try
+        {
+            var results = await _symbolSearchService.SearchAsync(_symbolIndexBuilder.Symbols, query, 250).ConfigureAwait(true);
+            ViewModel.SymbolExplorerResults.Clear();
+            foreach (var item in results)
+            {
+                ViewModel.SymbolExplorerResults.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = string.Format(ViewModel.L("AnalyzeFailedTemplate"), ex.Message);
+        }
+    }
+
+    private async void SymbolExplorerResults_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ListBox box)
+        {
+            return;
+        }
+
+        if (box.SelectedItem is not SymbolInfoModel sym)
+        {
+            ViewModel.ExplorerSymbolDetailsText = string.Empty;
+            ViewModel.ExplorerTypeMembersSummary = string.Empty;
+            ViewModel.ExplorerMethodMetadataText = string.Empty;
+            ViewModel.ExplorerTypeMethods.Clear();
+            return;
+        }
+
+        await RefreshExplorerSymbolAsync(sym).ConfigureAwait(true);
+    }
+
+    private async Task RefreshExplorerSymbolAsync(SymbolInfoModel sym)
+    {
+        ViewModel.ExplorerSymbolDetailsText = FormatSymbolDetails(sym);
+        ViewModel.ExplorerTypeMembersSummary = string.Empty;
+        ViewModel.ExplorerMethodMetadataText = string.Empty;
+        ViewModel.ExplorerTypeMethods.Clear();
+
+        var solution = _symbolIndexBuilder.CurrentSolution;
+        if (solution is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (IsExplorerTypeSymbolKind(sym.Kind))
+            {
+                var typeModel = await _typeMethodAnalyzer.AnalyzeTypeAsync(solution, sym, CancellationToken.None)
+                    .ConfigureAwait(false);
+                await Dispatcher.UIThread.InvokeAsync(() => ApplyTypeAnalysis(typeModel));
+            }
+            else if (sym.Kind == ExplorerSymbolKind.Method)
+            {
+                var meta = await _methodMetadataAnalyzer.TryFromSymbolInfoAsync(solution, sym, CancellationToken.None)
+                    .ConfigureAwait(false);
+                var text = meta is null ? string.Empty : FormatMethodDetails(meta);
+                await Dispatcher.UIThread.InvokeAsync(() => ViewModel.ExplorerMethodMetadataText = text);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                ViewModel.ExplorerMethodMetadataText = ex.Message);
+        }
+    }
+
+    private static string FormatSymbolDetails(SymbolInfoModel sym)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"{sym.DisplayName}");
+        sb.AppendLine($"Kind: {sym.Kind}");
+        sb.AppendLine($"Namespace: {sym.Namespace}");
+        sb.AppendLine($"Accessibility: {sym.Accessibility}");
+        if (!string.IsNullOrWhiteSpace(sym.ContainingTypeName))
+        {
+            sb.AppendLine($"Containing type: {sym.ContainingTypeName}");
+        }
+
+        sb.AppendLine($"File: {sym.FilePath}");
+        sb.AppendLine($"Line: {sym.LineNumber}");
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string FormatMethodDetails(MethodInfoModel m)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(m.Signature);
+        sb.AppendLine($"Return: {m.ReturnType}");
+        sb.AppendLine($"Parameters ({m.ParameterCount}): {m.Parameters}");
+        sb.AppendLine($"Async={m.IsAsync}, Static={m.IsStatic}, Virtual={m.IsVirtual}, Override={m.IsOverride}, Abstract={m.IsAbstract}");
+        sb.AppendLine($"Generics: {m.GenericParameterCount}");
+        if (m.UsedTypes.Count > 0)
+        {
+            sb.AppendLine("Used types (lightweight):");
+            foreach (var t in m.UsedTypes.Take(40))
+            {
+                sb.AppendLine($"  · {t}");
+            }
+
+            if (m.UsedTypes.Count > 40)
+            {
+                sb.AppendLine($"  … ({m.UsedTypes.Count - 40} more)");
+            }
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private void ApplyTypeAnalysis(TypeInfoModel? tm)
+    {
+        ViewModel.ExplorerTypeMethods.Clear();
+        if (tm is null)
+        {
+            ViewModel.ExplorerTypeMembersSummary = string.Empty;
+            return;
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine(tm.FullName);
+        sb.AppendLine($"Kind: {tm.Kind}");
+        sb.AppendLine($"{ViewModel.BaseTypeText}: {(string.IsNullOrWhiteSpace(tm.BaseType) ? "-" : tm.BaseType)}");
+        if (tm.Interfaces.Count > 0)
+        {
+            sb.AppendLine($"{ViewModel.ImplementedInterfacesText}:");
+            foreach (var i in tm.Interfaces.Take(15))
+            {
+                sb.AppendLine($"  · {i}");
+            }
+
+            if (tm.Interfaces.Count > 15)
+            {
+                sb.AppendLine($"  … ({tm.Interfaces.Count - 15} more)");
+            }
+        }
+
+        var pf = ViewModel.FileText;
+        sb.AppendLine($"{pf}: {tm.FilePath} ({tm.LineNumber})");
+
+        if (tm.Properties.Count > 0)
+        {
+            sb.AppendLine($"Properties ({tm.Properties.Count}): " +
+                          string.Join(", ", tm.Properties.Take(12)) +
+                          (tm.Properties.Count > 12 ? "…" : string.Empty));
+        }
+
+        if (tm.Fields.Count > 0)
+        {
+            sb.AppendLine($"Fields ({tm.Fields.Count}): " +
+                          string.Join(", ", tm.Fields.Take(12)) +
+                          (tm.Fields.Count > 12 ? "…" : string.Empty));
+        }
+
+        if (tm.Events.Count > 0)
+        {
+            sb.AppendLine($"Events ({tm.Events.Count}): " + string.Join(", ", tm.Events.Take(12)));
+        }
+
+        ViewModel.ExplorerTypeMembersSummary = sb.ToString().TrimEnd();
+        foreach (var method in tm.Methods)
+        {
+            ViewModel.ExplorerTypeMethods.Add(method);
+        }
+    }
+
+    private void ExplorerMethods_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ListBox { SelectedItem: MethodInfoModel method })
+        {
+            return;
+        }
+
+        ViewModel.ExplorerMethodMetadataText = FormatMethodDetails(method);
+    }
+
+    private async void SymbolExplorerFindRefs_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var sym = ViewModel.SelectedExplorerSymbol;
+        var solution = _symbolIndexBuilder.CurrentSolution;
+        if (sym is null)
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoSelection");
+            return;
+        }
+
+        if (solution is null)
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
+            return;
+        }
+
+        try
+        {
+            var (refs, _) = await _referenceFinderService.FindReferencesAsync(solution, sym, CancellationToken.None)
+                .ConfigureAwait(true);
+            ViewModel.ExplorerReferences.Clear();
+            foreach (var r in refs)
+            {
+                ViewModel.ExplorerReferences.Add(r);
+            }
+
+            ViewModel.Status = $"References: {refs.Count}";
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = string.Format(ViewModel.L("AnalyzeFailedTemplate"), ex.Message);
+        }
+    }
+
+    private void SymbolExplorerGoToDef_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel.SelectedExplorerMethod is { } method)
+        {
+            OpenExplorerTarget(_symbolNavigationService.JumpToMethod(method));
+            return;
+        }
+
+        var sym = ViewModel.SelectedExplorerSymbol;
+        if (sym is null)
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoSelection");
+            return;
+        }
+
+        OpenExplorerTarget(_symbolNavigationService.JumpToDefinition(sym));
+    }
+
+    private void ExplorerReferencesOpen_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var r = ViewModel.SelectedExplorerReference;
+        if (r is null)
+        {
+            return;
+        }
+
+        OpenExplorerTarget(_symbolNavigationService.JumpToReference(r));
+    }
+
+    private void ExplorerReferences_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (ViewModel.SelectedExplorerReference is { } reference)
+        {
+            OpenExplorerTarget(_symbolNavigationService.JumpToReference(reference));
+        }
+    }
+
+    private void OpenExplorerTarget(NavigationTarget target)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(target.FilePath) || !File.Exists(target.FilePath))
+            {
+                ViewModel.Status = string.Format(ViewModel.L("OpenFileNotFoundTemplate"), target.FilePath);
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = target.FilePath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = string.Format(ViewModel.L("OpenFileFailedTemplate"), ex.Message);
+        }
     }
 
     protected override void OnClosed(EventArgs e)
