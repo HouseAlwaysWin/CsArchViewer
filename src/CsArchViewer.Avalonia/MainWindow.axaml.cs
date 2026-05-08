@@ -1069,6 +1069,8 @@ public partial class MainWindow : Window
     {
         _fileChangeTracker.Dispose();
         _analysisScheduler.Dispose();
+        _symbolIndexBuilder.Dispose();
+        _analyzer.Dispose();
         base.OnClosed(e);
     }
 }

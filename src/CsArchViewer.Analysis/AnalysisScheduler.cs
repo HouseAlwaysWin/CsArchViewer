@@ -25,6 +25,9 @@ public sealed class AnalysisScheduler : IDisposable
     {
         lock (_queue)
         {
+            // Keep only the latest pending analysis request. Older queued work is stale
+            // once a newer file-system event arrives and can otherwise grow without bound.
+            _queue.Clear();
             _queue.Enqueue(new AnalysisWorkItem(work), (int)priority);
             QueueLengthChanged?.Invoke(_queue.Count);
         }

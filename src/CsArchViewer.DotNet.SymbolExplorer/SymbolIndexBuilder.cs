@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace CsArchViewer.DotNet.SymbolExplorer;
 
-public sealed class SymbolIndexBuilder
+public sealed class SymbolIndexBuilder : IDisposable
 {
     private readonly RoslynSolutionLoader _loader = new();
     private readonly object _lock = new();
@@ -417,5 +417,16 @@ public sealed class SymbolIndexBuilder
         {
             return path;
         }
+    }
+
+    public void Dispose()
+    {
+        lock (_lock)
+        {
+            _solution = null;
+            _symbols = [];
+        }
+
+        _loader.Dispose();
     }
 }

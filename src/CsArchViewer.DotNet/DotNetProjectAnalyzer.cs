@@ -5,7 +5,7 @@ using CsArchViewer.DotNet.SymbolAnalysis;
 
 namespace CsArchViewer.DotNet;
 
-public sealed class DotNetProjectAnalyzer : IProjectAnalyzer
+public sealed class DotNetProjectAnalyzer : IProjectAnalyzer, IDisposable
 {
     private readonly SolutionScanner _solutionScanner = new();
     private readonly CsProjParser _csProjParser = new();
@@ -355,5 +355,11 @@ public sealed class DotNetProjectAnalyzer : IProjectAnalyzer
             parentNode.X = (first.X + last.X) / 2d;
             parentNode.Y = 80 + depth * ySpacing;
         }
+    }
+
+    public void Dispose()
+    {
+        _roslynAnalyzer.Dispose();
+        _symbolGraphBuilder.Dispose();
     }
 }

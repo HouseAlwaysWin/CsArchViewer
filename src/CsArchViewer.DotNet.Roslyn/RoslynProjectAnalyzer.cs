@@ -2,7 +2,7 @@ using CsArchViewer.Core.Models;
 
 namespace CsArchViewer.DotNet.Roslyn;
 
-public sealed class RoslynProjectAnalyzer
+public sealed class RoslynProjectAnalyzer : IDisposable
 {
     private readonly RoslynSolutionLoader _solutionLoader = new();
     private readonly NamespaceDependencyAnalyzer _namespaceAnalyzer = new();
@@ -36,6 +36,11 @@ public sealed class RoslynProjectAnalyzer
         graphs[GraphType.NamespaceDependencies] = namespaceGraph;
         graphs[GraphType.ArchitectureViolations] = violationsGraph;
         return graphs;
+    }
+
+    public void Dispose()
+    {
+        _solutionLoader.Dispose();
     }
 
     private static ArchitectureGraph BuildViolationGraph(

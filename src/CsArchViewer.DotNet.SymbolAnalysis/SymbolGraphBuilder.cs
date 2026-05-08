@@ -3,7 +3,7 @@ using CsArchViewer.DotNet.Roslyn;
 
 namespace CsArchViewer.DotNet.SymbolAnalysis;
 
-public sealed class SymbolGraphBuilder
+public sealed class SymbolGraphBuilder : IDisposable
 {
     private readonly RoslynSolutionLoader _solutionLoader = new();
     private readonly RoslynTypeAnalyzer _typeAnalyzer = new();
@@ -30,5 +30,10 @@ public sealed class SymbolGraphBuilder
         output[GraphType.FileDependencies] = _fileDependencyAnalyzer.BuildGraph(types);
         output[GraphType.DependencyMatrix] = _matrixBuilder.BuildProjectMatrixGraph(types);
         return output;
+    }
+
+    public void Dispose()
+    {
+        _solutionLoader.Dispose();
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.MSBuild;
 
 namespace CsArchViewer.DotNet.Roslyn;
 
-public sealed class RoslynSolutionLoader
+public sealed class RoslynSolutionLoader : IDisposable
 {
     private MSBuildWorkspace? _workspace;
 
@@ -28,16 +28,57 @@ public sealed class RoslynSolutionLoader
             return await workspace.OpenSolutionAsync(solutionPath, cancellationToken: cancellationToken);
         }
 
-        var projectPath = Directory.EnumerateFiles(rootPath, "*.csproj", SearchOption.AllDirectories)
+        var projectPaths = Directory.EnumerateFiles(rootPath, "*.csproj", SearchOption.AllDirectories)
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault();
+            .ToList();
 
-        if (string.IsNullOrWhiteSpace(projectPath))
+        if (projectPaths.Count == 0)
         {
             return null;
         }
 
-        var project = await workspace.OpenProjectAsync(projectPath, cancellationToken: cancellationToken);
-        return project.Solution;
+        Exception? lastLoadError = null;
+        foreach (var projectPath in projectPaths)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsProjectLoaded(workspace.CurrentSolution, projectPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                await workspace.OpenProjectAsync(projectPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                lastLoadError = ex;
+            }
+        }
+
+        if (workspace.CurrentSolution.Projects.Any())
+        {
+            return workspace.CurrentSolution;
+        }
+
+        if (lastLoadError is not null)
+        {
+            throw lastLoadError;
+        }
+
+        return null;
+    }
+
+    private static bool IsProjectLoaded(Solution solution, string projectPath)
+    {
+        return solution.Projects.Any(project =>
+            !string.IsNullOrWhiteSpace(project.FilePath) &&
+            string.Equals(Path.GetFullPath(project.FilePath), Path.GetFullPath(projectPath), StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void Dispose()
+    {
+        _workspace?.Dispose();
+        _workspace = null;
     }
 }
