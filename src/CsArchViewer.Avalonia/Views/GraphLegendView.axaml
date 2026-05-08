@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="CsArchViewer.Avalonia.Views.GraphLegendView">
+  <Border Background="{DynamicResource AppSurfaceAltBackgroundBrush}"
+          BorderBrush="{DynamicResource AppSplitterBrush}"
+          BorderThickness="0,0,0,1"
+          Padding="8,4">
+    <Expander IsExpanded="False">
+      <Expander.Header>
+        <TextBlock Text="圖例"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="13" />
+      </Expander.Header>
+      <StackPanel>
+        <TextBlock Margin="0,0,0,8"
+                   Foreground="{DynamicResource AppTertiaryTextBrush}"
+                   Text="Overlay 會保留節點型別底色，額外用邊框/色條表示。" />
+        <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Library" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#065F46" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Exe / WinExe" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#4C1D95" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Folder" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#334155" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="File" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#0EA5E9" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="XAML/AXAML File" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#8B5CF6" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Razor File" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#F97316" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="CSHTML File" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#7C2D12" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Solution" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#14B8A6" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Package" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#0F4C5C" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Group" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#0F766E" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Namespace" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#B91C1C" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Violation" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#1D4ED8" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Type" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#38BDF8" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Interface" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#7C3AED" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Struct" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#BE185D" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Enum" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14" Background="#10B981" CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Record" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+            <Border Width="14" Height="14"
+                    BorderBrush="#F59E0B"
+                    BorderThickness="2"
+                    CornerRadius="3" />
+            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Search Hit" />
+          </StackPanel>
+        </WrapPanel>
+      </StackPanel>
+    </Expander>
+  </Border>
+</UserControl>

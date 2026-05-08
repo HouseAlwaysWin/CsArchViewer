@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
+             mc:Ignorable="d"
+             x:Class="CsArchViewer.Avalonia.Views.MetricsDashboardView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="20" Spacing="16">
+      <TextBlock Text="{Binding MetricsTabText}" FontSize="22" FontWeight="SemiBold" />
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding TotalLocText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="{Binding MetricsTotalLoc}" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding TotalFilesText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MetricsTotalFiles}" />
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding LargestFileText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MetricsLargestFile}" TextWrapping="Wrap" />
+      </Grid>
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding LargestNamespaceText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="{Binding MetricsLargestNamespace}" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding CircularDependenciesText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding MetricsCircularDependencies}" />
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding LayerViolationsText}" FontWeight="SemiBold" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MetricsLayerViolations}" />
+      </Grid>
+
+      <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*">
+        <TextBlock Grid.Column="0" Text="{Binding TopCoupledNamespacesText}" FontWeight="Bold" />
+        <TextBlock Grid.Column="1" Text="{Binding HealthWarningsText}" FontWeight="Bold" Margin="12,0,0,0" />
+        <ListBox Grid.Row="1" Grid.Column="0" Margin="0,8,6,0" ItemsSource="{Binding TopCoupledNamespaces}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="2">
+                <TextBlock Text="{Binding Namespace}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding TotalLines, StringFormat={}{0} lines}" />
+                <TextBlock Text="{Binding DependencyCount, StringFormat=dep: {0}}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <ListBox Grid.Row="1" Grid.Column="1" Margin="6,8,0,0" ItemsSource="{Binding HealthWarnings}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="2">
+                <TextBlock Text="{Binding Type}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Source}" Foreground="{DynamicResource AppTertiaryTextBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

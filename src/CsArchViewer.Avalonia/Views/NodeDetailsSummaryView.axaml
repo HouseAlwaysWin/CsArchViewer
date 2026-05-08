@@ -1,0 +1,232 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
+             mc:Ignorable="d"
+             x:Class="CsArchViewer.Avalonia.Views.NodeDetailsSummaryView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="10" Spacing="8">
+      <Expander Header="基本資訊"
+                IsExpanded="True"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="0" HorizontalAlignment="Stretch">
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ProjectNameText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ProjectName}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding NodeTypeText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.NodeType}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding FullPathText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.FullPath}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ExtensionText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Extension}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding LastModifiedText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.LastModified}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="專案/套件"
+                IsExpanded="False"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="0" HorizontalAlignment="Stretch">
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding TargetFrameworkText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.TargetFramework}" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding OutputTypeText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.OutputType}" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ProjectReferencesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ProjectReferences}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding PackageReferencesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.PackageReferences}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="Code Metrics"
+                IsExpanded="False"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="0" HorizontalAlignment="Stretch">
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding SizeBytesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Size}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ChildCountText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ChildCount}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding LineCountText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.LineCount}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="相依與規則"
+                IsExpanded="False"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="0" HorizontalAlignment="Stretch">
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding DependencyCountText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.DependencyCount}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding CircularDependencyCountText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.CircularDependencyCount}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ViolationCountText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ViolationCount}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding DependsOnText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.DependsOn}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding IncomingDependenciesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.DependencyIncoming}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding RuleText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Rule}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding MessageText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Message}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Expander>
+
+      <Expander Header="型別資訊"
+                IsExpanded="False"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="0" HorizontalAlignment="Stretch">
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding FullTypeNameText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.FullTypeName}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding NamespaceText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.NamespaceName}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding FileText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.File}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding BaseTypeText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.BaseType}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ImplementedInterfacesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ImplementedInterfaces}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ReferencedTypesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ReferencedTypes}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ReferencedNamespacesText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ReferencedNamespaces}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding ReferencedByText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.ReferencedBy}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding SourceText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Source}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding TargetText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.Target}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border BorderBrush="#2E3748" BorderThickness="0,0,0,1" Padding="0,6">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding DependencyMatrixRowText}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding NodeDetails.MatrixRow}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Expander>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
