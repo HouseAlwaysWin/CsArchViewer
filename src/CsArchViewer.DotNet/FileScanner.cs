@@ -4,6 +4,8 @@ namespace CsArchViewer.DotNet;
 
 public sealed class FileScanner
 {
+    private static readonly string[] SupportedFileExtensions = [".cs", ".axaml", ".xaml", ".razor", ".cshtml"];
+
     private static readonly string[] ExcludedDirectories =
     [
         "bin",
@@ -13,7 +15,7 @@ public sealed class FileScanner
         "packages"
     ];
 
-    public IReadOnlyList<string> FindCSharpFiles(string projectPath)
+    public IReadOnlyList<string> FindSourceFiles(string projectPath)
     {
         var projectDirectory = Path.GetDirectoryName(projectPath);
         if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
@@ -22,8 +24,8 @@ public sealed class FileScanner
         }
 
         return Directory
-            .EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories)
-            .Where(path => !IsExcluded(path))
+            .EnumerateFiles(projectDirectory, "*.*", SearchOption.AllDirectories)
+            .Where(path => !IsExcluded(path) && IsSupportedFile(path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
@@ -37,7 +39,7 @@ public sealed class FileScanner
         var projectNodeId = project.CsProjPath;
         var projectDirectory = Path.GetDirectoryName(project.CsProjPath) ?? string.Empty;
         var folderIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var files = FindCSharpFiles(project.CsProjPath);
+        var files = FindSourceFiles(project.CsProjPath);
 
         graph.Edges.Add(new ArchitectureEdge
         {
@@ -145,6 +147,12 @@ public sealed class FileScanner
         var separators = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
         var parts = path.Split(separators, StringSplitOptions.RemoveEmptyEntries);
         return parts.Any(part => ExcludedDirectories.Contains(part, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static bool IsSupportedFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return SupportedFileExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
     private static int GetLineCount(string path)

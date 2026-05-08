@@ -9,7 +9,7 @@ namespace CsArchViewer.Metrics;
 
 public sealed class FileMetricsAnalyzer
 {
-    private static readonly string[] SupportedExtensions = [".cs", ".xaml", ".razor", ".cshtml"];
+    private static readonly string[] SupportedExtensions = [".cs", ".axaml", ".xaml", ".razor", ".cshtml"];
 
     public IReadOnlyList<FileMetrics> Analyze(
         string rootPath,

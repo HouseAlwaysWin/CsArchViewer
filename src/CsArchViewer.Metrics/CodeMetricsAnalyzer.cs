@@ -5,7 +5,7 @@ namespace CsArchViewer.Metrics;
 
 public sealed class CodeMetricsAnalyzer
 {
-    private static readonly string[] SupportedExtensions = [".cs", ".xaml", ".razor", ".cshtml"];
+    private static readonly string[] SupportedExtensions = [".cs", ".axaml", ".xaml", ".razor", ".cshtml"];
     private readonly FileMetricsAnalyzer _fileAnalyzer = new();
     private readonly ProjectMetricsAnalyzer _projectAnalyzer = new();
     private readonly NamespaceMetricsAnalyzer _namespaceAnalyzer = new();

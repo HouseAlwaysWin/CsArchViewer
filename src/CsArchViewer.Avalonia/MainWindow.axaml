@@ -143,6 +143,18 @@
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="File" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Border Width="14" Height="14" Background="#0EA5E9" CornerRadius="3" />
+                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="XAML/AXAML File" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Border Width="14" Height="14" Background="#8B5CF6" CornerRadius="3" />
+                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Razor File" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Border Width="14" Height="14" Background="#F97316" CornerRadius="3" />
+                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="CSHTML File" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
                       <Border Width="14" Height="14" Background="#7C2D12" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Solution" />
                     </StackPanel>

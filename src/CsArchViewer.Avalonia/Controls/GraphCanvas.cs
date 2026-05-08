@@ -130,6 +130,9 @@ public sealed class GraphCanvas : Control
         var executableFill = new SolidColorBrush(Color.Parse("#065F46"));
         var folderFill = new SolidColorBrush(Color.Parse("#4C1D95"));
         var fileFill = new SolidColorBrush(Color.Parse("#334155"));
+        var xamlFileFill = new SolidColorBrush(Color.Parse("#0EA5E9"));
+        var razorFileFill = new SolidColorBrush(Color.Parse("#8B5CF6"));
+        var cshtmlFileFill = new SolidColorBrush(Color.Parse("#F97316"));
         var solutionFill = new SolidColorBrush(Color.Parse("#7C2D12"));
         var packageFill = new SolidColorBrush(Color.Parse("#14B8A6"));
         var namespaceFill = new SolidColorBrush(Color.Parse("#0F766E"));
@@ -216,7 +219,7 @@ public sealed class GraphCanvas : Control
             var baseFill = node.Type switch
             {
                 ArchitectureNodeType.Folder => folderFill,
-                ArchitectureNodeType.File => fileFill,
+                ArchitectureNodeType.File => ResolveFileFill(node, fileFill, xamlFileFill, razorFileFill, cshtmlFileFill),
                 ArchitectureNodeType.Solution => solutionFill,
                 ArchitectureNodeType.Package => packageFill,
                 ArchitectureNodeType.Namespace => namespaceFill,
@@ -478,6 +481,41 @@ public sealed class GraphCanvas : Control
         }
 
         return $"{node.Name}\n({rawLineCount} lines)";
+    }
+
+    private static IBrush ResolveFileFill(
+        ArchitectureNode node,
+        IBrush defaultFileFill,
+        IBrush xamlFileFill,
+        IBrush razorFileFill,
+        IBrush cshtmlFileFill)
+    {
+        var extension = GetFileExtension(node);
+        return extension switch
+        {
+            ".axaml" => xamlFileFill,
+            ".xaml" => xamlFileFill,
+            ".razor" => razorFileFill,
+            ".cshtml" => cshtmlFileFill,
+            _ => defaultFileFill
+        };
+    }
+
+    private static string GetFileExtension(ArchitectureNode node)
+    {
+        if (node.Metadata.TryGetValue("Extension", out var metadataExtension) &&
+            !string.IsNullOrWhiteSpace(metadataExtension))
+        {
+            var normalized = metadataExtension.Trim();
+            return normalized.StartsWith(".", StringComparison.Ordinal)
+                ? normalized.ToLowerInvariant()
+                : $".{normalized.ToLowerInvariant()}";
+        }
+
+        var pathExtension = Path.GetExtension(node.FullPath ?? string.Empty);
+        return string.IsNullOrWhiteSpace(pathExtension)
+            ? string.Empty
+            : pathExtension.ToLowerInvariant();
     }
 
     private Point TransformPoint(Point point)
