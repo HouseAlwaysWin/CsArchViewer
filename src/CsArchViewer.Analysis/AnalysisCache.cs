@@ -8,14 +8,18 @@ public sealed class AnalysisCache
 {
     private readonly Dictionary<string, CachedFileEntry> _fileEntries = new(StringComparer.OrdinalIgnoreCase);
     private AnalysisResult? _lastResult;
+    private int _cacheHits;
+    private int _cacheMisses;
 
     public AnalysisResult? GetLastResult() => _lastResult;
     public void SetLastResult(AnalysisResult result) => _lastResult = result;
+    public double HitRate => (_cacheHits + _cacheMisses) == 0 ? 0 : _cacheHits / (double)(_cacheHits + _cacheMisses);
 
     public bool IsFileChanged(string filePath)
     {
         if (!File.Exists(filePath))
         {
+            _cacheMisses++;
             return true;
         }
 
@@ -23,15 +27,18 @@ public sealed class AnalysisCache
         if (!_fileEntries.TryGetValue(filePath, out var entry))
         {
             _fileEntries[filePath] = new CachedFileEntry(hash, DateTime.UtcNow);
+            _cacheMisses++;
             return true;
         }
 
         if (string.Equals(entry.Hash, hash, StringComparison.Ordinal))
         {
+            _cacheHits++;
             return false;
         }
 
         _fileEntries[filePath] = new CachedFileEntry(hash, DateTime.UtcNow);
+        _cacheMisses++;
         return true;
     }
 

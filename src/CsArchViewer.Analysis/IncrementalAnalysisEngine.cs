@@ -13,6 +13,8 @@ public sealed class IncrementalAnalysisEngine
         _projectAnalyzer = projectAnalyzer;
     }
 
+    public double CacheHitRate => _cache.HitRate;
+
     public async Task<AnalysisUpdate> AnalyzeAsync(
         string rootPath,
         IReadOnlyCollection<string>? changedFiles = null,

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CsArchViewer.Analysis;
 using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
 using CsArchViewer.DotNet.SymbolExplorer.Models;
@@ -9,10 +10,14 @@ namespace CsArchViewer.Avalonia.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly LocalizationService _localization = new();
+    private readonly GraphGroupingService _groupingService = new();
     public static readonly IReadOnlyList<string> LanguageOptions = ["繁體中文", "English"];
     public static readonly IReadOnlyList<string> TypeFilterOptions = ["All", "Library", "Exe"];
     public static readonly IReadOnlyList<string> OverlayModeOptions = ["None", "Dependency Count", "LOC Heatmap", "Project Size", "Diagnostics Severity"];
     public static readonly IReadOnlyList<string> MetricsFilterOptions = ["All", "Large Files", "Highly Coupled", "Circular Dependencies", "High Dependency Depth"];
+    public static readonly IReadOnlyList<string> ThemeOptions = ["Dark", "Light", "Default"];
+    public static readonly IReadOnlyList<string> GraphLayoutOptions = ["Auto", "Tree", "Layered"];
+    public static readonly IReadOnlyList<string> DiagnosticsSeverityOptions = ["All", "Info", "Warning", "Error"];
     public static readonly IReadOnlyList<GraphType> GraphTypeOptions =
     [
         GraphType.ProjectDependencies,
@@ -25,11 +30,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         GraphType.FileDependencies,
         GraphType.DependencyMatrix
     ];
+    public static readonly IReadOnlyList<GraphGroupingMode> GroupingModeOptions =
+    [
+        GraphGroupingMode.None,
+        GraphGroupingMode.Project,
+        GraphGroupingMode.Namespace,
+        GraphGroupingMode.Folder,
+        GraphGroupingMode.Layer
+    ];
 
     private string _searchText = string.Empty;
     private string _selectedTypeFilter = "All";
     private bool _showLineCountOnNodes;
     private GraphType _selectedGraphType = GraphType.ProjectDependencies;
+    private GraphGroupingMode _selectedGroupingMode = GraphGroupingMode.None;
     private string? _drillProjectPath;
     private string? _drillFolderPath;
     private string _status = string.Empty;
@@ -40,11 +54,15 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _selectedLanguage = "繁體中文";
     private string _selectedOverlayMode = "None";
     private string _selectedMetricsFilter = "All";
+    private string _selectedTheme = "Dark";
+    private string _selectedGraphLayout = "Auto";
+    private string _selectedDiagnosticsSeverityFilter = "All";
     private string? _currentRootPath;
     private ProjectInfo? _selectedProject;
     private ArchitectureNode? _selectedListedNode;
     private List<ProjectInfo> _allProjects = [];
     private Dictionary<GraphType, ArchitectureGraph> _graphs = [];
+    private List<ArchitectureDiagnostic> _allDiagnostics = [];
     private MetricsSummary? _metricsSummary;
     private string _symbolExplorerSearchQuery = string.Empty;
     private SymbolInfoModel? _selectedExplorerSymbol;
@@ -53,23 +71,38 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _explorerSymbolDetailsText = string.Empty;
     private string _explorerMethodMetadataText = string.Empty;
     private string _explorerTypeMembersSummary = string.Empty;
+    private string _performanceStatusText = string.Empty;
+    private string _dependencyPathSourceText = "-";
+    private string _dependencyPathTargetQuery = string.Empty;
+    private string _dependencyPathSummaryText = string.Empty;
+    private bool _restoreLastSession = true;
+    private bool _autoSaveSession = true;
 
     public ObservableCollection<ProjectInfo> Projects { get; } = [];
     public ObservableCollection<ArchitectureNode> ListedNodes { get; } = [];
     public ObservableCollection<ArchitectureDiagnostic> Diagnostics { get; } = [];
+    public ObservableCollection<ArchitectureDiagnostic> FilteredDiagnostics { get; } = [];
     public ObservableCollection<FileLineRankItem> TopFilesByLineCount { get; } = [];
     public ObservableCollection<NamespaceMetrics> TopCoupledNamespaces { get; } = [];
     public ObservableCollection<HealthWarning> HealthWarnings { get; } = [];
     public ObservableCollection<SymbolInfoModel> SymbolExplorerResults { get; } = [];
     public ObservableCollection<ReferenceInfoModel> ExplorerReferences { get; } = [];
     public ObservableCollection<MethodInfoModel> ExplorerTypeMethods { get; } = [];
+    public ObservableCollection<string> RecentSearches { get; } = [];
+    public ObservableCollection<string> RecentSymbolSearches { get; } = [];
+    public ObservableCollection<AppLogEntry> LogEntries { get; } = [];
+    public ObservableCollection<string> DependencyPathSteps { get; } = [];
     public GraphViewModel Graph { get; } = new();
     public NodeDetailsViewModel NodeDetails { get; } = new();
     public IReadOnlyList<string> AvailableTypeFilters => TypeFilterOptions;
     public IReadOnlyList<GraphType> AvailableGraphTypes => GraphTypeOptions;
+    public IReadOnlyList<GraphGroupingMode> AvailableGroupingModes => GroupingModeOptions;
     public IReadOnlyList<string> AvailableLanguages => LanguageOptions;
     public IReadOnlyList<string> AvailableOverlayModes => OverlayModeOptions;
     public IReadOnlyList<string> AvailableMetricsFilters => MetricsFilterOptions;
+    public IReadOnlyList<string> AvailableThemeOptions => ThemeOptions;
+    public IReadOnlyList<string> AvailableGraphLayoutOptions => GraphLayoutOptions;
+    public IReadOnlyList<string> AvailableDiagnosticsSeverityOptions => DiagnosticsSeverityOptions;
 
     public MainWindowViewModel()
     {
@@ -191,6 +224,42 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+    public string SelectedTheme
+    {
+        get => _selectedTheme;
+        set => SetProperty(ref _selectedTheme, value);
+    }
+
+    public string SelectedGraphLayout
+    {
+        get => _selectedGraphLayout;
+        set => SetProperty(ref _selectedGraphLayout, value);
+    }
+
+    public bool RestoreLastSession
+    {
+        get => _restoreLastSession;
+        set => SetProperty(ref _restoreLastSession, value);
+    }
+
+    public bool AutoSaveSession
+    {
+        get => _autoSaveSession;
+        set => SetProperty(ref _autoSaveSession, value);
+    }
+
+    public string SelectedDiagnosticsSeverityFilter
+    {
+        get => _selectedDiagnosticsSeverityFilter;
+        set
+        {
+            if (SetProperty(ref _selectedDiagnosticsSeverityFilter, value))
+            {
+                ApplyDiagnosticsFilters();
+            }
+        }
+    }
+
     public string WorkspaceTabText => L("WorkspaceTab");
     public string SettingsTabText => L("SettingsTab");
     public string OpenFolderText => L("OpenFolder");
@@ -259,6 +328,47 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string BottomPanelDiagnosticsTabText => L("BottomPanelDiagnosticsTab");
     public string SymbolExplorerReferencesTabText => L("SymbolExplorerReferencesTab");
     public string SymbolExplorerJumpOpenText => L("SymbolExplorerJumpOpen");
+    public string GroupByText => L("GroupBy");
+    public string FitToScreenText => L("FitToScreen");
+    public string ZoomToSelectionText => L("ZoomToSelection");
+    public string DependencyPathTabText => L("DependencyPathTab");
+    public string DependencyPathSourceTextLabel => L("DependencyPathSource");
+    public string DependencyPathTargetTextLabel => L("DependencyPathTarget");
+    public string DependencyPathShortestText => L("DependencyPathShortest");
+    public string DependencyPathCycleText => L("DependencyPathCycle");
+    public string DiagnosticsSeverityFilterText => L("DiagnosticsSeverityFilter");
+    public string ExportDiagnosticsText => L("ExportDiagnostics");
+    public string RecentSearchesText => L("RecentSearches");
+    public string LogsTabText => L("LogsTab");
+    public string PerformanceText => L("Performance");
+    public string RestoreLastSessionText => L("RestoreLastSession");
+    public string AutoSaveSessionText => L("AutoSaveSession");
+    public string ThemeText => L("Theme");
+    public string GraphLayoutText => L("GraphLayout");
+
+    public string PerformanceStatusText
+    {
+        get => _performanceStatusText;
+        set => SetProperty(ref _performanceStatusText, value);
+    }
+
+    public string DependencyPathSourceText
+    {
+        get => _dependencyPathSourceText;
+        set => SetProperty(ref _dependencyPathSourceText, value);
+    }
+
+    public string DependencyPathTargetQuery
+    {
+        get => _dependencyPathTargetQuery;
+        set => SetProperty(ref _dependencyPathTargetQuery, value);
+    }
+
+    public string DependencyPathSummaryText
+    {
+        get => _dependencyPathSummaryText;
+        set => SetProperty(ref _dependencyPathSummaryText, value);
+    }
 
     public string SymbolExplorerSearchQuery
     {
@@ -367,6 +477,21 @@ public sealed class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _selectedGraphType, value))
+            {
+                BuildActiveGraph();
+                ApplyFilters();
+                UpdateGraphStatus();
+                Graph.RequestAutoFit();
+            }
+        }
+    }
+
+    public GraphGroupingMode SelectedGroupingMode
+    {
+        get => _selectedGroupingMode;
+        set
+        {
+            if (SetProperty(ref _selectedGroupingMode, value))
             {
                 BuildActiveGraph();
                 ApplyFilters();
