@@ -43,6 +43,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ObservableCollection<ProjectInfo> Projects { get; } = [];
     public ObservableCollection<ArchitectureNode> ListedNodes { get; } = [];
     public ObservableCollection<ArchitectureDiagnostic> Diagnostics { get; } = [];
+    public ObservableCollection<FileLineRankItem> TopFilesByLineCount { get; } = [];
     public GraphViewModel Graph { get; } = new();
     public NodeDetailsViewModel NodeDetails { get; } = new();
     public IReadOnlyList<string> AvailableTypeFilters => TypeFilterOptions;
@@ -183,6 +184,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string ViolationCountText => L("ViolationCount");
     public string LineCountText => L("LineCount");
     public string DiagnosticsTitleText => L("Diagnostics");
+    public string TopFilesByLineCountText => L("TopFilesByLineCount");
+    public string LinesUnitText => L("LinesUnit");
     public string SettingsTitleText => L("SettingsTitle");
     public string SettingsDescriptionText => L("SettingsDescription");
     public string GraphSectionText => L("GraphSection");
@@ -272,6 +275,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         Graph.Touch();
         Graph.RequestAutoFit();
         NodeDetails.SetProject(null);
+        UpdateTopFileLineRanking();
         UpdateGraphStatus();
     }
 
@@ -493,6 +497,39 @@ public sealed class MainWindowViewModel : ViewModelBase
         TopStatus = $"{Status} | {AnalysisStatus} | {L("StatusTasks")}: {BackgroundTaskCount}";
     }
 
+    private void UpdateTopFileLineRanking()
+    {
+        TopFilesByLineCount.Clear();
+        if (!_graphs.TryGetValue(GraphType.FileStructure, out var fileGraph))
+        {
+            return;
+        }
+
+        var ranked = fileGraph.Nodes
+            .Where(node => node.Type == ArchitectureNodeType.File &&
+                           node.Metadata.TryGetValue("LineCount", out var lineValue) &&
+                           int.TryParse(lineValue, out _))
+            .Select(node => new
+            {
+                Node = node,
+                LineCount = int.TryParse(node.Metadata["LineCount"], out var parsed) ? parsed : 0
+            })
+            .OrderByDescending(x => x.LineCount)
+            .ThenBy(x => x.Node.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToList();
+
+        foreach (var item in ranked)
+        {
+            TopFilesByLineCount.Add(new FileLineRankItem
+            {
+                FileName = item.Node.Name,
+                FilePath = item.Node.FullPath,
+                LineCount = item.LineCount
+            });
+        }
+    }
+
     private void HandleLanguageChanged()
     {
         OnPropertyChanged(nameof(WorkspaceTabText));
@@ -534,6 +571,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(ViolationCountText));
         OnPropertyChanged(nameof(LineCountText));
         OnPropertyChanged(nameof(DiagnosticsTitleText));
+        OnPropertyChanged(nameof(TopFilesByLineCountText));
+        OnPropertyChanged(nameof(LinesUnitText));
         OnPropertyChanged(nameof(SettingsTitleText));
         OnPropertyChanged(nameof(SettingsDescriptionText));
         OnPropertyChanged(nameof(GraphSectionText));
