@@ -73,7 +73,7 @@ public partial class MainWindow : Window
 
             InjectDependencyExplorerMetadata(ViewModel.Graph.SelectedNode);
             ViewModel.SelectNode(ViewModel.Graph.SelectedNode);
-            _ = ExplorerAnalyzeGraphTypeAsync(ViewModel.Graph.SelectedNode);
+            _ = SyncSymbolExplorerFromSelectedNodeAsync(ViewModel.Graph.SelectedNode);
         };
 
         GraphViewControl.NodeDoubleClicked += HandleNodeDoubleClicked;
@@ -509,6 +509,20 @@ public partial class MainWindow : Window
             or ExplorerSymbolKind.Enum or ExplorerSymbolKind.Record or ExplorerSymbolKind.Delegate;
     }
 
+    private static bool IsReferenceQueryableSymbolKind(ExplorerSymbolKind kind)
+    {
+        return kind is ExplorerSymbolKind.Class
+            or ExplorerSymbolKind.Interface
+            or ExplorerSymbolKind.Struct
+            or ExplorerSymbolKind.Enum
+            or ExplorerSymbolKind.Record
+            or ExplorerSymbolKind.Delegate
+            or ExplorerSymbolKind.Method
+            or ExplorerSymbolKind.Property
+            or ExplorerSymbolKind.Field
+            or ExplorerSymbolKind.Event;
+    }
+
     private static SymbolInfoModel? MatchSymbolForGraphNode(ArchitectureNode node, IReadOnlyList<SymbolInfoModel> symbols)
     {
         node.Metadata.TryGetValue("Namespace", out var ns);
@@ -580,10 +594,61 @@ public partial class MainWindow : Window
         await RefreshExplorerSymbolAsync(hit).ConfigureAwait(true);
     }
 
+    private async Task SyncSymbolExplorerFromSelectedNodeAsync(ArchitectureNode? node)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        if (node.Type != ArchitectureNodeType.File || !node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExplorerAnalyzeGraphTypeAsync(node).ConfigureAwait(true);
+            return;
+        }
+
+        if (!await EnsureSymbolIndexReadyAsync().ConfigureAwait(true))
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
+            return;
+        }
+
+        var symbols = _symbolIndexBuilder.Symbols
+            .Where(s => PathsEqual(s.FilePath, node.FullPath))
+            .OrderBy(s => GetKindOrder(s.Kind))
+            .ThenBy(s => s.LineNumber)
+            .ThenBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        ViewModel.SymbolExplorerResults.Clear();
+        foreach (var symbol in symbols)
+        {
+            ViewModel.SymbolExplorerResults.Add(symbol);
+        }
+
+        ViewModel.SymbolExplorerSearchQuery = Path.GetFileNameWithoutExtension(node.FullPath);
+        ViewModel.SelectedExplorerSymbol = symbols.FirstOrDefault();
+        if (ViewModel.SelectedExplorerSymbol is not null)
+        {
+            await RefreshExplorerSymbolAsync(ViewModel.SelectedExplorerSymbol).ConfigureAwait(true);
+        }
+        else
+        {
+            ViewModel.ExplorerSymbolDetailsText = string.Empty;
+            ViewModel.ExplorerTypeMembersSummary = string.Empty;
+            ViewModel.ExplorerMethodMetadataText = string.Empty;
+            ViewModel.ExplorerTypeMethods.Clear();
+        }
+
+        ViewModel.Status = symbols.Count == 0
+            ? $"No symbols found in {Path.GetFileName(node.FullPath)}."
+            : $"Loaded {symbols.Count} symbols from {Path.GetFileName(node.FullPath)}.";
+    }
+
     private async void SymbolExplorerSearch_OnClick(object? sender, RoutedEventArgs e)
     {
         var query = ViewModel.SymbolExplorerSearchQuery?.Trim() ?? string.Empty;
-        if (_symbolIndexBuilder.Symbols.Count == 0)
+        if (!await EnsureSymbolIndexReadyAsync().ConfigureAwait(true))
         {
             ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
             return;
@@ -591,7 +656,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var results = await _symbolSearchService.SearchAsync(_symbolIndexBuilder.Symbols, query, 250).ConfigureAwait(true);
+            var results = await _symbolSearchService.SearchAsync(_symbolIndexBuilder.Symbols, query, 1000).ConfigureAwait(true);
             ViewModel.SymbolExplorerResults.Clear();
             foreach (var item in results)
             {
@@ -770,16 +835,29 @@ public partial class MainWindow : Window
     private async void SymbolExplorerFindRefs_OnClick(object? sender, RoutedEventArgs e)
     {
         var sym = ViewModel.SelectedExplorerSymbol;
-        var solution = _symbolIndexBuilder.CurrentSolution;
         if (sym is null)
         {
             ViewModel.Status = ViewModel.L("SymbolExplorerNoSelection");
             return;
         }
 
+        if (!await EnsureSymbolIndexReadyAsync().ConfigureAwait(true))
+        {
+            ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
+            return;
+        }
+        var solution = _symbolIndexBuilder.CurrentSolution;
         if (solution is null)
         {
             ViewModel.Status = ViewModel.L("SymbolExplorerNoIndex");
+            return;
+        }
+
+        if (!IsReferenceQueryableSymbolKind(sym.Kind))
+        {
+            ViewModel.ExplorerReferences.Clear();
+            ViewModel.SelectedExplorerReference = null;
+            ViewModel.Status = $"'{sym.Kind}' symbols do not support reference lookup. Please select a type/member symbol.";
             return;
         }
 
@@ -788,12 +866,15 @@ public partial class MainWindow : Window
             var (refs, _) = await _referenceFinderService.FindReferencesAsync(solution, sym, CancellationToken.None)
                 .ConfigureAwait(true);
             ViewModel.ExplorerReferences.Clear();
+            ViewModel.SelectedExplorerReference = null;
             foreach (var r in refs)
             {
                 ViewModel.ExplorerReferences.Add(r);
             }
 
-            ViewModel.Status = $"References: {refs.Count}";
+            ViewModel.Status = refs.Count == 0
+                ? $"No references found for '{sym.DisplayName}'."
+                : $"References: {refs.Count}";
         }
         catch (Exception ex)
         {
@@ -824,6 +905,7 @@ public partial class MainWindow : Window
         var r = ViewModel.SelectedExplorerReference;
         if (r is null)
         {
+            ViewModel.Status = "No reference selected.";
             return;
         }
 
@@ -848,15 +930,138 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (TryLaunchEditorAtLocation(target))
+            {
+                ViewModel.Status = $"Opened: {Path.GetFileName(target.FilePath)}:{Math.Max(1, target.LineNumber)}";
+                return;
+            }
+
             Process.Start(new ProcessStartInfo
             {
-                FileName = target.FilePath,
+                FileName = "explorer.exe",
+                Arguments = $"\"{target.FilePath}\"",
                 UseShellExecute = true
             });
+            ViewModel.Status = $"Opened file: {Path.GetFileName(target.FilePath)}";
         }
         catch (Exception ex)
         {
             ViewModel.Status = string.Format(ViewModel.L("OpenFileFailedTemplate"), ex.Message);
+        }
+    }
+
+    private static bool TryLaunchEditorAtLocation(NavigationTarget target)
+    {
+        var line = Math.Max(1, target.LineNumber);
+        var col = Math.Max(1, target.Column);
+        var escaped = $"\"{target.FilePath}:{line}:{col}\"";
+        foreach (var cli in GetEditorLaunchCommands())
+        {
+            try
+            {
+                var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = cli.FileName,
+                    Arguments = $"--goto {escaped}",
+                    UseShellExecute = cli.UseShellExecute,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                });
+
+                if (process is not null)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Ignore and try fallback command/file open.
+            }
+        }
+
+        return false;
+    }
+
+    private static bool PathsEqual(string a, string b)
+    {
+        try
+        {
+            return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static int GetKindOrder(ExplorerSymbolKind kind)
+    {
+        return kind switch
+        {
+            ExplorerSymbolKind.Class => 0,
+            ExplorerSymbolKind.Record => 1,
+            ExplorerSymbolKind.Struct => 2,
+            ExplorerSymbolKind.Interface => 3,
+            ExplorerSymbolKind.Enum => 4,
+            ExplorerSymbolKind.Delegate => 5,
+            ExplorerSymbolKind.Method => 6,
+            ExplorerSymbolKind.Property => 7,
+            ExplorerSymbolKind.Field => 8,
+            ExplorerSymbolKind.Event => 9,
+            ExplorerSymbolKind.Namespace => 10,
+            _ => 99
+        };
+    }
+
+    private static IEnumerable<(string FileName, bool UseShellExecute)> GetEditorLaunchCommands()
+    {
+        // Try direct exe paths first (more reliable than PATH in desktop apps).
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var cursorExe = Path.Combine(localAppData, "Programs", "cursor", "Cursor.exe");
+        var codeExe = Path.Combine(localAppData, "Programs", "Microsoft VS Code", "Code.exe");
+
+        if (File.Exists(cursorExe))
+        {
+            yield return (cursorExe, false);
+        }
+
+        if (File.Exists(codeExe))
+        {
+            yield return (codeExe, false);
+        }
+
+        // Fallback to PATH-based launch commands.
+        yield return ("cursor", false);
+        yield return ("code", false);
+    }
+
+    private async Task<bool> EnsureSymbolIndexReadyAsync()
+    {
+        if (_symbolIndexBuilder.Symbols.Count > 0 && _symbolIndexBuilder.CurrentSolution is not null)
+        {
+            return true;
+        }
+
+        var root = ViewModel.CurrentRootPath;
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+        {
+            return false;
+        }
+
+        try
+        {
+            ViewModel.Status = "Building symbol index...";
+            await _symbolIndexBuilder.RebuildAsync(root, CancellationToken.None).ConfigureAwait(true);
+            var ready = _symbolIndexBuilder.Symbols.Count > 0 && _symbolIndexBuilder.CurrentSolution is not null;
+            ViewModel.Status = ready
+                ? $"Symbol index ready: {_symbolIndexBuilder.Symbols.Count} items"
+                : ViewModel.L("SymbolExplorerNoIndex");
+            return ready;
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = $"Symbol index build failed: {ex.Message}";
+            return false;
         }
     }
 

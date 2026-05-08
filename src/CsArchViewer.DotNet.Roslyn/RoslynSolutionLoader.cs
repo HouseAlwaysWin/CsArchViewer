@@ -5,6 +5,8 @@ namespace CsArchViewer.DotNet.Roslyn;
 
 public sealed class RoslynSolutionLoader
 {
+    private MSBuildWorkspace? _workspace;
+
     public async Task<Solution?> LoadAsync(string rootPath, CancellationToken cancellationToken = default)
     {
         if (!Directory.Exists(rootPath))
@@ -12,7 +14,9 @@ public sealed class RoslynSolutionLoader
             return null;
         }
 
-        using var workspace = MSBuildWorkspace.Create();
+        _workspace?.Dispose();
+        var workspace = MSBuildWorkspace.Create();
+        _workspace = workspace;
         workspace.SkipUnrecognizedProjects = true;
 
         var solutionPath = Directory.EnumerateFiles(rootPath, "*.sln", SearchOption.AllDirectories)

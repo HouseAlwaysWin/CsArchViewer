@@ -125,15 +125,51 @@ public sealed class SymbolIndexBuilder
         }
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var semantic = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        if (root is null || semantic is null)
+        if (root is null)
         {
             return;
+        }
+
+        SemanticModel? semantic = null;
+        try
+        {
+            semantic = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Fallback to syntax-only indexing when semantic model is unavailable.
         }
 
         foreach (var node in root.DescendantNodes())
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            if (semantic is null)
+            {
+                switch (node)
+                {
+                    case ClassDeclarationSyntax cd:
+                        AddTypeFallback(cd.Identifier.Text, cd, ExplorerSymbolKind.Class, path, target);
+                        break;
+                    case RecordDeclarationSyntax rd:
+                        AddTypeFallback(rd.Identifier.Text, rd, ExplorerSymbolKind.Record, path, target);
+                        break;
+                    case StructDeclarationSyntax sd:
+                        AddTypeFallback(sd.Identifier.Text, sd, ExplorerSymbolKind.Struct, path, target);
+                        break;
+                    case InterfaceDeclarationSyntax id:
+                        AddTypeFallback(id.Identifier.Text, id, ExplorerSymbolKind.Interface, path, target);
+                        break;
+                    case EnumDeclarationSyntax ed:
+                        AddTypeFallback(ed.Identifier.Text, ed, ExplorerSymbolKind.Enum, path, target);
+                        break;
+                    case DelegateDeclarationSyntax dd:
+                        AddTypeFallback(dd.Identifier.Text, dd, ExplorerSymbolKind.Delegate, path, target);
+                        break;
+                }
+
+                continue;
+            }
 
             switch (node)
             {
@@ -271,6 +307,99 @@ public sealed class SymbolIndexBuilder
     {
         var pos = tree.GetLineSpan(span);
         return pos.StartLinePosition.Line + 1;
+    }
+
+    private static void AddTypeFallback(
+        string name,
+        SyntaxNode decl,
+        ExplorerSymbolKind kind,
+        string path,
+        List<SymbolInfoModel> target)
+    {
+        var span = decl.Span;
+        var ns = GetNamespaceText(decl);
+        var containingType = GetContainingTypeText(decl);
+        var symbolKey = string.IsNullOrWhiteSpace(ns) ? name : $"{ns}.{name}";
+        var displayName = string.IsNullOrWhiteSpace(containingType) ? name : $"{containingType}.{name}";
+        var accessibility = GetAccessibilityText(decl);
+
+        target.Add(new SymbolInfoModel
+        {
+            SymbolKey = symbolKey,
+            Kind = kind,
+            Name = name,
+            Namespace = ns,
+            DisplayName = displayName,
+            ContainingTypeName = containingType,
+            Accessibility = accessibility,
+            FilePath = NormalizePath(path),
+            LineNumber = GetLine(decl.SyntaxTree, span),
+            SpanStart = span.Start
+        });
+    }
+
+    private static string GetNamespaceText(SyntaxNode node)
+    {
+        for (var current = node.Parent; current is not null; current = current.Parent)
+        {
+            if (current is BaseNamespaceDeclarationSyntax ns)
+            {
+                return ns.Name.ToString();
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string GetContainingTypeText(SyntaxNode node)
+    {
+        for (var current = node.Parent; current is not null; current = current.Parent)
+        {
+            switch (current)
+            {
+                case TypeDeclarationSyntax td:
+                    return td.Identifier.Text;
+                case EnumDeclarationSyntax ed:
+                    return ed.Identifier.Text;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string GetAccessibilityText(SyntaxNode node)
+    {
+        return node switch
+        {
+            BaseTypeDeclarationSyntax btd => GetAccessibilityFromTokens(btd.Modifiers),
+            DelegateDeclarationSyntax dd => GetAccessibilityFromTokens(dd.Modifiers),
+            _ => "NotApplicable"
+        };
+    }
+
+    private static string GetAccessibilityFromTokens(SyntaxTokenList modifiers)
+    {
+        if (modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword)))
+        {
+            return "Public";
+        }
+
+        if (modifiers.Any(m => m.IsKind(SyntaxKind.PrivateKeyword)))
+        {
+            return "Private";
+        }
+
+        if (modifiers.Any(m => m.IsKind(SyntaxKind.InternalKeyword)))
+        {
+            return "Internal";
+        }
+
+        if (modifiers.Any(m => m.IsKind(SyntaxKind.ProtectedKeyword)))
+        {
+            return "Protected";
+        }
+
+        return "NotApplicable";
     }
 
     private static bool PathsEqual(string a, string b)
