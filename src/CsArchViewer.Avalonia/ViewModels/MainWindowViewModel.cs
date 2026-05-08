@@ -30,6 +30,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _analysisStatus = "Idle";
     private bool _isAnalyzing;
     private int _backgroundTaskCount;
+    private string _topStatus = "Select a folder to analyze. | Idle | Tasks: 0";
     private string? _currentRootPath;
     private ProjectInfo? _selectedProject;
     private ArchitectureNode? _selectedListedNode;
@@ -72,13 +73,25 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string Status
     {
         get => _status;
-        set => SetProperty(ref _status, value);
+        set
+        {
+            if (SetProperty(ref _status, value))
+            {
+                UpdateTopStatus();
+            }
+        }
     }
 
     public string AnalysisStatus
     {
         get => _analysisStatus;
-        set => SetProperty(ref _analysisStatus, value);
+        set
+        {
+            if (SetProperty(ref _analysisStatus, value))
+            {
+                UpdateTopStatus();
+            }
+        }
     }
 
     public bool IsAnalyzing
@@ -90,7 +103,19 @@ public sealed class MainWindowViewModel : ViewModelBase
     public int BackgroundTaskCount
     {
         get => _backgroundTaskCount;
-        set => SetProperty(ref _backgroundTaskCount, value);
+        set
+        {
+            if (SetProperty(ref _backgroundTaskCount, value))
+            {
+                UpdateTopStatus();
+            }
+        }
+    }
+
+    public string TopStatus
+    {
+        get => _topStatus;
+        private set => SetProperty(ref _topStatus, value);
     }
 
     public string? CurrentRootPath
@@ -179,8 +204,12 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public void SetDiagnostics(IEnumerable<ArchitectureDiagnostic> diagnostics)
     {
+        var uniqueDiagnostics = diagnostics
+            .DistinctBy(d => $"{d.Severity}|{d.Type}|{d.Source}|{d.Target}|{d.Message}", StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         Diagnostics.Clear();
-        foreach (var diagnostic in diagnostics)
+        foreach (var diagnostic in uniqueDiagnostics)
         {
             Diagnostics.Add(diagnostic);
         }
@@ -384,6 +413,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void UpdateGraphStatus()
     {
         Status = $"Graph: {SelectedGraphType} | Nodes: {Graph.Nodes.Count} | Edges: {Graph.Edges.Count}";
+    }
+
+    private void UpdateTopStatus()
+    {
+        TopStatus = $"{Status} | {AnalysisStatus} | Tasks: {BackgroundTaskCount}";
     }
 
     private bool MatchesDrillFilter(ArchitectureNode node)
