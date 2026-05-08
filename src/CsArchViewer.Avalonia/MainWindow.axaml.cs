@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -65,7 +66,36 @@ public partial class MainWindow : Window
             ViewModel.SelectNode(ViewModel.Graph.SelectedNode);
         };
 
-        GraphViewControl.NodeDoubleClicked += node => ViewModel.DrillInto(node);
+        GraphViewControl.NodeDoubleClicked += HandleNodeDoubleClicked;
+    }
+
+    private void HandleNodeDoubleClicked(ArchitectureNode node)
+    {
+        if (node.Type != ArchitectureNodeType.File)
+        {
+            ViewModel.DrillInto(node);
+            return;
+        }
+
+        if (!File.Exists(node.FullPath))
+        {
+            ViewModel.Status = string.Format(ViewModel.L("OpenFileNotFoundTemplate"), node.FullPath);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = node.FullPath,
+                UseShellExecute = true
+            });
+            ViewModel.Status = string.Format(ViewModel.L("OpenedFileTemplate"), Path.GetFileName(node.FullPath));
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = string.Format(ViewModel.L("OpenFileFailedTemplate"), ex.Message);
+        }
     }
 
     private void AttachAnalysisEvents()
