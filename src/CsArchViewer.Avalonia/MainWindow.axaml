@@ -11,20 +11,21 @@
         d:DesignHeight="820"
         x:Class="CsArchViewer.Avalonia.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
         Title="CsArchViewer - .NET Architecture Viewer"
         Icon="/Assets/Icons/logo-mark.png">
   <DockPanel>
     <TabControl Margin="0"
                 Padding="0"
                 TabStripPlacement="Top"
-                Background="#0B1220">
+                Background="{DynamicResource AppWindowBackgroundBrush}">
       <TabItem Header="{Binding WorkspaceTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <DockPanel>
           <Border DockPanel.Dock="Top"
                   Padding="10,8"
-                  BorderBrush="#2E3748"
+                  BorderBrush="{DynamicResource AppBorderBrush}"
                   BorderThickness="0,0,0,1"
-                  Background="#0B1220">
+                  Background="{DynamicResource AppWindowBackgroundBrush}">
             <DockPanel LastChildFill="True">
               <!-- Top-edge loading indicator line -->
               <ProgressBar DockPanel.Dock="Top"
@@ -41,7 +42,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,6">
                   <Button Content="{Binding OpenFolderText}" Click="OpenFolder_OnClick" />
                   <Button Content="{Binding ReloadText}" Click="Reload_OnClick" />
-                  <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
+                  <Separator Width="1" Height="22" Margin="4,0" Background="{DynamicResource AppBorderBrush}" />
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <ComboBox x:Name="ExportFormatCombo"
                               Width="150"
@@ -59,12 +60,12 @@
                             Content="{Binding ExportText}"
                             Click="Export_OnClick" />
                   </StackPanel>
-                  <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
+                  <Separator Width="1" Height="22" Margin="4,0" Background="{DynamicResource AppBorderBrush}" />
                    <ComboBox Width="190"
                              ItemsSource="{Binding AvailableGraphTypes}"
                              SelectedItem="{Binding SelectedGraphType, Mode=TwoWay}" />
                    <TextBlock VerticalAlignment="Center"
-                              Foreground="#CBD5E1"
+                              Foreground="{DynamicResource AppSecondaryTextBrush}"
                               Text="{Binding GroupByText}" />
                    <ComboBox Width="130"
                              ItemsSource="{Binding AvailableGroupingModes}"
@@ -76,7 +77,7 @@
                    <ComboBox Width="130"
                              ItemsSource="{Binding AvailableTypeFilters}"
                              SelectedItem="{Binding SelectedTypeFilter, Mode=TwoWay}" />
-                  <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
+                  <Separator Width="1" Height="22" Margin="4,0" Background="{DynamicResource AppBorderBrush}" />
                   <TextBox Width="280"
                            VerticalAlignment="Center"
                            PlaceholderText="{Binding SearchPlaceholderText}"
@@ -86,13 +87,13 @@
 
               <TextBlock DockPanel.Dock="Top"
                          Margin="0,4,0,0"
-                         Foreground="#94A3B8"
+                         Foreground="{DynamicResource AppTertiaryTextBrush}"
                          FontSize="12"
                          Text="{Binding TopStatus}"
                          TextWrapping="Wrap" />
               <TextBlock DockPanel.Dock="Top"
                          Margin="0,2,0,0"
-                         Foreground="#7DD3FC"
+                         Foreground="{DynamicResource AppAccentTextBrush}"
                          FontSize="11"
                          Text="{Binding PerformanceStatusText}"
                          TextWrapping="Wrap" />
@@ -110,7 +111,7 @@
                 MinHeight="120">
             <Border Grid.Column="0"
                     MinWidth="160"
-                    BorderBrush="#2E3748"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="0,0,1,0">
               <TabControl Margin="4">
                 <TabItem Header="{Binding NodesTitleText}" FontWeight="SemiBold" FontSize="14">
@@ -122,7 +123,7 @@
                         <DataTemplate x:DataType="core:ArchitectureNode">
                           <StackPanel Margin="4">
                             <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                            <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Type}" />
+                            <TextBlock FontSize="11" Foreground="{DynamicResource AppTertiaryTextBrush}" Text="{Binding Type}" />
                           </StackPanel>
                         </DataTemplate>
                       </ListBox.ItemTemplate>
@@ -151,8 +152,8 @@
                         <DataTemplate x:DataType="symexp:SymbolInfoModel">
                           <StackPanel Margin="2">
                             <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
-                            <TextBlock FontSize="11" Foreground="#94A3B8" Text="{Binding Kind}" />
-                            <TextBlock FontSize="10" Foreground="#64748B" Text="{Binding Namespace}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock FontSize="11" Foreground="{DynamicResource AppTertiaryTextBrush}" Text="{Binding Kind}" />
+                            <TextBlock FontSize="10" Foreground="{DynamicResource AppQuaternaryTextBrush}" Text="{Binding Namespace}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                         </DataTemplate>
                       </ListBox.ItemTemplate>
@@ -164,95 +165,104 @@
 
             <GridSplitter Grid.Column="1"
                           Width="6"
-                          Background="#1E293B"
+                          Background="{DynamicResource AppSplitterBrush}"
                           ResizeDirection="Columns" />
 
-            <Border Grid.Column="2" MinWidth="200" Background="#111827">
+            <Border Grid.Column="2" MinWidth="200" Background="{DynamicResource AppSurfaceBackgroundBrush}">
               <Grid RowDefinitions="Auto,*">
-                <Border Background="#0F172A"
-                        BorderBrush="#1E293B"
+                <Border Background="{DynamicResource AppSurfaceAltBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppSplitterBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="8,4">
                   <Expander IsExpanded="False">
                     <Expander.Header>
                       <TextBlock Text="圖例"
-                                 Foreground="#CBD5E1"
+                                 Foreground="{DynamicResource AppSecondaryTextBrush}"
                                  FontWeight="SemiBold"
                                  FontSize="13" />
                     </Expander.Header>
-                    <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
-                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
-                      <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Library" />
+                    <StackPanel>
+                      <TextBlock Margin="0,0,0,8"
+                                 Foreground="{DynamicResource AppTertiaryTextBrush}"
+                                 Text="Overlay 會保留節點型別底色，額外用邊框/色條表示。" />
+                      <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
+                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+                       <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
+                       <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Library" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#065F46" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Exe / WinExe" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Exe / WinExe" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#4C1D95" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Folder" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Folder" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#334155" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="File" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="File" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#0EA5E9" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="XAML/AXAML File" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="XAML/AXAML File" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#8B5CF6" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Razor File" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Razor File" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#F97316" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="CSHTML File" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="CSHTML File" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#7C2D12" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Solution" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Solution" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#14B8A6" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Package" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Package" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
+                      <Border Width="14" Height="14" Background="#0F4C5C" CornerRadius="3" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Group" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#0F766E" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Namespace" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Namespace" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#B91C1C" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Violation" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Violation" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#1D4ED8" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Type" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Type" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#38BDF8" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Interface" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Interface" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#7C3AED" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Struct" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Struct" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#BE185D" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Enum" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Enum" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#10B981" CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Record" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Record" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14"
                               BorderBrush="#F59E0B"
                               BorderThickness="2"
                               CornerRadius="3" />
-                      <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Search Hit" />
+                      <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" Text="Search Hit" />
+                     </StackPanel>
+                      </WrapPanel>
                     </StackPanel>
-                    </WrapPanel>
                   </Expander>
                 </Border>
                 <views:GraphView x:Name="GraphViewControl"
@@ -263,12 +273,12 @@
 
             <GridSplitter Grid.Column="3"
                           Width="6"
-                          Background="#1E293B"
+                          Background="{DynamicResource AppSplitterBrush}"
                           ResizeDirection="Columns" />
 
             <Border Grid.Column="4"
                     MinWidth="200"
-                    BorderBrush="#2E3748"
+                    BorderBrush="{DynamicResource AppBorderBrush}"
                     BorderThickness="1,0,0,0">
               <TabControl>
                 <TabItem Header="{Binding NodeDetailsTitleText}" FontWeight="SemiBold" FontSize="14">
@@ -507,14 +517,14 @@
                       </StackPanel>
                       <TextBlock Text="{Binding ExplorerSymbolDetailsText}"
                                  TextWrapping="Wrap"
-                                 Foreground="#CBD5E1" />
-                      <Separator Background="#2E3748" />
+                                 Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                      <Separator Background="{DynamicResource AppBorderBrush}" />
                       <TextBlock FontWeight="Bold"
                                  Text="{Binding SymbolExplorerTypeMembersTitleText}" />
                       <TextBlock Text="{Binding ExplorerTypeMembersSummary}"
                                  TextWrapping="Wrap"
                                  FontSize="11"
-                                 Foreground="#94A3B8" />
+                                 Foreground="{DynamicResource AppTertiaryTextBrush}" />
                       <ListBox Height="220"
                                ItemsSource="{Binding ExplorerTypeMethods}"
                                SelectedItem="{Binding SelectedExplorerMethod, Mode=TwoWay}"
@@ -526,7 +536,7 @@
                                          Text="{Binding Signature}"
                                          TextWrapping="Wrap" />
                               <TextBlock FontSize="10"
-                                         Foreground="#64748B"
+                                         Foreground="{DynamicResource AppQuaternaryTextBrush}"
                                          Text="{Binding FilePath}"
                                          TextTrimming="CharacterEllipsis" />
                             </StackPanel>
@@ -552,14 +562,14 @@
                         DoubleTapped="DiagnosticsSplitter_OnDoubleTapped"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
-                        Background="#1E293B"
+                         Background="{DynamicResource AppSplitterBrush}"
                         ResizeDirection="Rows" />
 
           <Border Grid.Row="2"
-                  BorderBrush="#2E3748"
+                  BorderBrush="{DynamicResource AppBorderBrush}"
                   BorderThickness="0,1,0,0"
                   Padding="8"
-                  Background="#0B1220">
+                  Background="{DynamicResource AppWindowBackgroundBrush}">
             <TabControl>
               <TabItem Header="{Binding BottomPanelDiagnosticsTabText}" FontWeight="SemiBold" FontSize="13">
              <Grid ColumnDefinitions="2*,6,*" RowDefinitions="Auto,*">
@@ -595,8 +605,8 @@
                     <StackPanel Spacing="2" Margin="2">
                       <TextBlock Text="{Binding Severity}" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding Type}" />
-                      <TextBlock Text="{Binding Source}" TextWrapping="Wrap" Foreground="#94A3B8" />
-                      <TextBlock Text="{Binding Target}" TextWrapping="Wrap" Foreground="#64748B" />
+                      <TextBlock Text="{Binding Source}" TextWrapping="Wrap" Foreground="{DynamicResource AppTertiaryTextBrush}" />
+                      <TextBlock Text="{Binding Target}" TextWrapping="Wrap" Foreground="{DynamicResource AppQuaternaryTextBrush}" />
                       <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
                     </StackPanel>
                   </DataTemplate>
@@ -608,7 +618,7 @@
                             Width="6"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
-                            Background="#1E293B"
+                            Background="{DynamicResource AppSplitterBrush}"
                             ResizeDirection="Columns" />
 
               <TextBlock Grid.Column="2"
@@ -624,11 +634,11 @@
                     <StackPanel Spacing="2" Margin="2">
                       <TextBlock FontWeight="SemiBold"
                                  Text="{Binding FileName}" />
-                      <TextBlock Foreground="#94A3B8"
+                      <TextBlock Foreground="{DynamicResource AppTertiaryTextBrush}"
                                  Text="{Binding FilePath}"
                                  TextWrapping="NoWrap"
                                  TextTrimming="CharacterEllipsis" />
-                      <TextBlock Foreground="#CBD5E1"
+                      <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
                                  Text="{Binding LineCount, StringFormat={}{0} lines}" />
                     </StackPanel>
                   </DataTemplate>
@@ -644,7 +654,7 @@
                      <TextBlock Text="{Binding DependencyPathSourceTextLabel}"
                                 FontWeight="Bold" />
                      <TextBlock Text="{Binding DependencyPathSourceText}"
-                                Foreground="#CBD5E1"
+                                Foreground="{DynamicResource AppSecondaryTextBrush}"
                                 TextWrapping="Wrap" />
                      <TextBlock Text="{Binding DependencyPathTargetTextLabel}"
                                 FontWeight="Bold" />
@@ -656,7 +666,7 @@
                                Click="DependencyPathCycle_OnClick" />
                      </StackPanel>
                      <TextBlock Text="{Binding DependencyPathSummaryText}"
-                                Foreground="#93C5FD"
+                                Foreground="{DynamicResource AppAccentTextBrush}"
                                 TextWrapping="Wrap" />
                    </StackPanel>
                    <Grid ColumnDefinitions="2*,*" RowDefinitions="Auto,*">
@@ -695,11 +705,11 @@
                                      Text="{Binding ReferencingSymbolDisplay}"
                                      TextWrapping="Wrap" />
                           <TextBlock FontSize="11"
-                                     Foreground="#94A3B8"
+                                     Foreground="{DynamicResource AppTertiaryTextBrush}"
                                      Text="{Binding FilePath}"
                                      TextTrimming="CharacterEllipsis" />
                           <TextBlock FontSize="11"
-                                     Foreground="#64748B"
+                                     Foreground="{DynamicResource AppQuaternaryTextBrush}"
                                      Text="{Binding LineNumber, StringFormat=Line {0}}" />
                         </StackPanel>
                       </DataTemplate>
@@ -711,7 +721,7 @@
                  <DockPanel LastChildFill="True">
                    <TextBlock DockPanel.Dock="Top"
                               Margin="0,0,0,8"
-                              Foreground="#7DD3FC"
+                              Foreground="{DynamicResource AppAccentTextBrush}"
                               Text="{Binding PerformanceStatusText}"
                               TextWrapping="Wrap" />
                    <ListBox ItemsSource="{Binding LogEntries}">
@@ -726,7 +736,7 @@
                              <TextBlock FontWeight="SemiBold"
                                         Text="{Binding Category}" />
                            </StackPanel>
-                           <TextBlock Foreground="#CBD5E1"
+                           <TextBlock Foreground="{DynamicResource AppSecondaryTextBrush}"
                                       Text="{Binding Message}"
                                       TextWrapping="Wrap" />
                          </StackPanel>
@@ -780,7 +790,7 @@
                   <DataTemplate>
                     <StackPanel Margin="2">
                       <TextBlock Text="{Binding Type}" FontWeight="SemiBold" />
-                      <TextBlock Text="{Binding Source}" Foreground="#94A3B8" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Source}" Foreground="{DynamicResource AppTertiaryTextBrush}" TextWrapping="Wrap" />
                       <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
                     </StackPanel>
                   </DataTemplate>

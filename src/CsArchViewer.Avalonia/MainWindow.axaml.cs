@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using CsArchViewer.Analysis;
 using CsArchViewer.Avalonia.ViewModels;
@@ -70,6 +71,7 @@ public partial class MainWindow : Window
         AttachV65Services();
         AttachGraphSelectionBridge();
         AttachAnalysisEvents();
+        ApplyThemeVariant();
         UpdateExportButtonState();
         Opened += MainWindow_OnOpened;
     }
@@ -93,12 +95,32 @@ public partial class MainWindow : Window
                 _appLogService.Info("Graph", $"Graph updated: {ViewModel.SelectedGraphType} | Grouping: {ViewModel.SelectedGroupingMode}");
                 UpdateExportButtonState();
             }
+            else if (args.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
+            {
+                ApplyThemeVariant();
+            }
 
             if (ShouldPersistProperty(args.PropertyName))
             {
                 SchedulePersistWorkspaceState();
             }
         };
+    }
+
+    private void ApplyThemeVariant()
+    {
+        var themeVariant = ViewModel.SelectedTheme switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
+
+        RequestedThemeVariant = themeVariant;
+        if (Application.Current is not null)
+        {
+            Application.Current.RequestedThemeVariant = themeVariant;
+        }
     }
 
     private async void MainWindow_OnOpened(object? sender, EventArgs e)

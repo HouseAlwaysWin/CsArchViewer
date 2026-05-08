@@ -11,26 +11,26 @@
       <TextBlock Text="{Binding SettingsTitleText}"
                  FontSize="22"
                  FontWeight="SemiBold"
-                 Foreground="#E2E8F0" />
+                 Foreground="{DynamicResource AppPrimaryTextBrush}" />
       <TextBlock Text="{Binding SettingsDescriptionText}"
-                 Foreground="#94A3B8"
+                 Foreground="{DynamicResource AppTertiaryTextBrush}"
                  TextWrapping="Wrap" />
-      <Border Background="#0F172A"
-              BorderBrush="#2E3748"
+      <Border Background="{DynamicResource AppSurfaceAltBackgroundBrush}"
+              BorderBrush="{DynamicResource AppBorderBrush}"
               BorderThickness="1"
               CornerRadius="6"
               Padding="16">
         <StackPanel Spacing="12">
           <TextBlock Text="{Binding GraphSectionText}"
                      FontWeight="SemiBold"
-                     Foreground="#CBD5E1" />
+                     Foreground="{DynamicResource AppSecondaryTextBrush}" />
           <CheckBox Content="{Binding ShowLineCountText}"
                     IsChecked="{Binding ShowLineCountOnNodes, Mode=TwoWay}"
-                    Foreground="#E2E8F0" />
+                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
 
           <TextBlock Text="{Binding ThemeText}"
                      FontWeight="SemiBold"
-                     Foreground="#CBD5E1"
+                     Foreground="{DynamicResource AppSecondaryTextBrush}"
                      Margin="0,8,0,0" />
           <ComboBox Width="220"
                     ItemsSource="{Binding AvailableThemeOptions}"
@@ -38,7 +38,7 @@
 
           <TextBlock Text="{Binding GraphLayoutText}"
                      FontWeight="SemiBold"
-                     Foreground="#CBD5E1"
+                     Foreground="{DynamicResource AppSecondaryTextBrush}"
                      Margin="0,8,0,0" />
           <ComboBox Width="220"
                     ItemsSource="{Binding AvailableGraphLayoutOptions}"
@@ -46,7 +46,7 @@
 
           <TextBlock Text="{Binding OverlayModeText}"
                      FontWeight="SemiBold"
-                     Foreground="#CBD5E1"
+                     Foreground="{DynamicResource AppSecondaryTextBrush}"
                      Margin="0,8,0,0" />
           <ComboBox Width="220"
                     ItemsSource="{Binding AvailableOverlayModes}"
@@ -54,7 +54,7 @@
 
           <TextBlock Text="{Binding LanguageText}"
                      FontWeight="SemiBold"
-                     Foreground="#CBD5E1"
+                     Foreground="{DynamicResource AppSecondaryTextBrush}"
                      Margin="0,8,0,0" />
           <ComboBox Width="200"
                     ItemsSource="{Binding AvailableLanguages}"
@@ -62,11 +62,11 @@
 
           <CheckBox Content="{Binding RestoreLastSessionText}"
                     IsChecked="{Binding RestoreLastSession, Mode=TwoWay}"
-                    Foreground="#E2E8F0"
+                    Foreground="{DynamicResource AppPrimaryTextBrush}"
                     Margin="0,8,0,0" />
           <CheckBox Content="{Binding AutoSaveSessionText}"
                     IsChecked="{Binding AutoSaveSession, Mode=TwoWay}"
-                    Foreground="#E2E8F0" />
+                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
         </StackPanel>
       </Border>
     </StackPanel>

@@ -224,6 +224,10 @@ public sealed class GraphCanvas : Control
                               string.Equals(hitValue, "true", StringComparison.OrdinalIgnoreCase);
             var isDependencyPathHit = node.Metadata.TryGetValue("IsDependencyPathHit", out var pathValue) &&
                                       string.Equals(pathValue, "true", StringComparison.OrdinalIgnoreCase);
+            var overlayPen = node.Metadata.TryGetValue("OverlayColor", out var overlayColor) &&
+                             !string.IsNullOrWhiteSpace(overlayColor)
+                ? new Pen(new SolidColorBrush(Color.Parse(overlayColor)), 2.5)
+                : null;
             var baseFill = node.Type switch
             {
                 ArchitectureNodeType.Group => groupFill,
@@ -244,15 +248,21 @@ public sealed class GraphCanvas : Control
                     : libraryFill
             };
             var fill = ReferenceEquals(node, SelectedNode) ? selectedFill : baseFill;
-            if (node.Metadata.TryGetValue("OverlayColor", out var overlayColor) &&
-                !string.IsNullOrWhiteSpace(overlayColor))
-            {
-                fill = new SolidColorBrush(Color.Parse(overlayColor));
-            }
 
             context.FillRectangle(fill, rect, 8);
+            if (overlayPen is not null)
+            {
+                var accentHeight = Math.Clamp(6 * _zoom, 4, 10);
+                var accentRect = new Rect(
+                    rect.X + (6 * _zoom),
+                    rect.Y + (6 * _zoom),
+                    Math.Max(16, rect.Width - (12 * _zoom)),
+                    accentHeight);
+                context.FillRectangle(overlayPen.Brush, accentRect, 3);
+            }
+
             context.DrawRectangle(
-                isDependencyPathHit ? dependencyPathPen : isSearchHit ? highlightedPen : new Pen(Brushes.Black, 1),
+                isDependencyPathHit ? dependencyPathPen : isSearchHit ? highlightedPen : overlayPen ?? new Pen(Brushes.Black, 1),
                 rect,
                 8);
 
