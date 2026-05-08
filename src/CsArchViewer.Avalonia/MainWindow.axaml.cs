@@ -136,6 +136,25 @@ public partial class MainWindow : Window
         await ExportAsync("dot", ".dot", graph => _graphvizExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
     }
 
+    private async void Export_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var combo = this.FindControl<ComboBox>("ExportFormatCombo");
+        var selected = (combo?.SelectedItem as ComboBoxItem)?.Content as string ?? "Mermaid";
+
+        switch (selected)
+        {
+            case "JSON":
+                await ExportAsync("json", ".json", graph => _jsonExporter.Export(graph));
+                break;
+            case "DOT":
+                await ExportAsync("dot", ".dot", graph => _graphvizExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
+                break;
+            default:
+                await ExportAsync("mermaid", ".mmd", graph => _mermaidExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
+                break;
+        }
+    }
+
     private async Task ExportAsync(string formatName, string extension, Func<CsArchViewer.Core.Models.ArchitectureGraph, string> writer)
     {
         var graph = ViewModel.GetCurrentGraph();

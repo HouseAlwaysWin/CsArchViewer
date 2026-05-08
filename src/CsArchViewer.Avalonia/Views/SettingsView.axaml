@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:CsArchViewer.Avalonia.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="CsArchViewer.Avalonia.Views.SettingsView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="20" MaxWidth="720">
+      <TextBlock Text="設定"
+                 FontSize="22"
+                 FontWeight="SemiBold"
+                 Foreground="#E2E8F0" />
+      <TextBlock Text="外觀與圖表顯示選項。"
+                 Foreground="#94A3B8"
+                 TextWrapping="Wrap" />
+      <Border Background="#0F172A"
+              BorderBrush="#2E3748"
+              BorderThickness="1"
+              CornerRadius="6"
+              Padding="16">
+        <StackPanel Spacing="12">
+          <TextBlock Text="圖表"
+                     FontWeight="SemiBold"
+                     Foreground="#CBD5E1" />
+          <CheckBox Content="在節點上顯示行數"
+                    IsChecked="{Binding ShowLineCountOnNodes, Mode=TwoWay}"
+                    Foreground="#E2E8F0" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
