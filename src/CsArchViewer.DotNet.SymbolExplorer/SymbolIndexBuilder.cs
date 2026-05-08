@@ -10,11 +10,18 @@ namespace CsArchViewer.DotNet.SymbolExplorer;
 
 public sealed class SymbolIndexBuilder : IDisposable
 {
-    private readonly RoslynSolutionLoader _loader = new();
+    private readonly RoslynSolutionLoader _loader;
     private readonly object _lock = new();
+    private readonly bool _ownsLoader;
 
     private Solution? _solution;
     private List<SymbolInfoModel> _symbols = [];
+
+    public SymbolIndexBuilder(RoslynSolutionLoader? loader = null)
+    {
+        _loader = loader ?? new RoslynSolutionLoader();
+        _ownsLoader = loader is null;
+    }
 
     public Solution? CurrentSolution
     {
@@ -427,6 +434,9 @@ public sealed class SymbolIndexBuilder : IDisposable
             _symbols = [];
         }
 
-        _loader.Dispose();
+        if (_ownsLoader)
+        {
+            _loader.Dispose();
+        }
     }
 }

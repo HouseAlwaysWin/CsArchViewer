@@ -10,8 +10,16 @@ public sealed class DotNetProjectAnalyzer : IProjectAnalyzer, IDisposable
     private readonly SolutionScanner _solutionScanner = new();
     private readonly CsProjParser _csProjParser = new();
     private readonly FileScanner _fileScanner = new();
+    private readonly RoslynSolutionLoader _solutionLoader;
     private readonly RoslynProjectAnalyzer _roslynAnalyzer = new();
     private readonly SymbolGraphBuilder _symbolGraphBuilder = new();
+    private readonly bool _ownsSolutionLoader;
+
+    public DotNetProjectAnalyzer(RoslynSolutionLoader? solutionLoader = null)
+    {
+        _solutionLoader = solutionLoader ?? new RoslynSolutionLoader();
+        _ownsSolutionLoader = solutionLoader is null;
+    }
 
     public async Task<AnalysisResult> AnalyzeAsync(string rootPath, CancellationToken cancellationToken = default)
     {
@@ -42,16 +50,28 @@ public sealed class DotNetProjectAnalyzer : IProjectAnalyzer, IDisposable
 
         var graphs = BuildGraphs(rootPath, projects);
         var rulesPath = ResolveRulesFilePath();
-        var roslynGraphs = await _roslynAnalyzer.AnalyzeAsync(rootPath, rulesPath, cancellationToken);
-        foreach (var graph in roslynGraphs)
+        var solution = await _solutionLoader.LoadAsync(rootPath, forceReload: true, cancellationToken).ConfigureAwait(false);
+        if (solution is not null)
         {
-            graphs[graph.Key] = graph.Value;
-        }
+            var roslynGraphs = await _roslynAnalyzer.AnalyzeAsync(solution, rulesPath, cancellationToken).ConfigureAwait(false);
+            foreach (var graph in roslynGraphs)
+            {
+                graphs[graph.Key] = graph.Value;
+            }
 
-        var symbolGraphs = await _symbolGraphBuilder.AnalyzeAsync(rootPath, cancellationToken);
-        foreach (var graph in symbolGraphs)
+            var symbolGraphs = await _symbolGraphBuilder.AnalyzeAsync(solution, cancellationToken).ConfigureAwait(false);
+            foreach (var graph in symbolGraphs)
+            {
+                graphs[graph.Key] = graph.Value;
+            }
+        }
+        else
         {
-            graphs[graph.Key] = graph.Value;
+            graphs[GraphType.NamespaceDependencies] = new ArchitectureGraph();
+            graphs[GraphType.ArchitectureViolations] = new ArchitectureGraph();
+            graphs[GraphType.TypeDependencies] = new ArchitectureGraph();
+            graphs[GraphType.FileDependencies] = new ArchitectureGraph();
+            graphs[GraphType.DependencyMatrix] = new ArchitectureGraph();
         }
 
         var result = new AnalysisResult
@@ -359,7 +379,9 @@ public sealed class DotNetProjectAnalyzer : IProjectAnalyzer, IDisposable
 
     public void Dispose()
     {
-        _roslynAnalyzer.Dispose();
-        _symbolGraphBuilder.Dispose();
+        if (_ownsSolutionLoader)
+        {
+            _solutionLoader.Dispose();
+        }
     }
 }

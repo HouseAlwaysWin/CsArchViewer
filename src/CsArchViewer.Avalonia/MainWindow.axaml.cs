@@ -14,6 +14,7 @@ using CsArchViewer.Avalonia.ViewModels;
 using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
 using CsArchViewer.DotNet;
+using CsArchViewer.DotNet.Roslyn;
 using CsArchViewer.Export;
 using CsArchViewer.DotNet.SymbolExplorer;
 using CsArchViewer.DotNet.SymbolExplorer.Models;
@@ -26,7 +27,8 @@ public partial class MainWindow : Window
 {
     private GridLength _lastDiagnosticsHeight = new(180);
 
-    private readonly DotNetProjectAnalyzer _analyzer = new();
+    private readonly RoslynSolutionLoader _roslynSolutionLoader = new();
+    private readonly DotNetProjectAnalyzer _analyzer;
     private readonly IncrementalAnalysisEngine _incrementalEngine;
     private readonly AnalysisScheduler _analysisScheduler = new();
     private readonly FileChangeTracker _fileChangeTracker = new();
@@ -41,7 +43,7 @@ public partial class MainWindow : Window
     private readonly MetricsCsvExporter _metricsCsvExporter = new();
     private readonly MetricsMarkdownExporter _metricsMarkdownExporter = new();
     private readonly CodeMetricsAnalyzer _codeMetricsAnalyzer = new();
-    private readonly SymbolIndexBuilder _symbolIndexBuilder = new();
+    private readonly SymbolIndexBuilder _symbolIndexBuilder;
     private readonly SymbolSearchService _symbolSearchService = new();
     private readonly ReferenceFinderService _referenceFinderService = new();
     private readonly TypeMethodAnalyzer _typeMethodAnalyzer = new();
@@ -56,6 +58,8 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = new MainWindowViewModel();
+        _analyzer = new DotNetProjectAnalyzer(_roslynSolutionLoader);
+        _symbolIndexBuilder = new SymbolIndexBuilder(_roslynSolutionLoader);
         _incrementalEngine = new IncrementalAnalysisEngine(_analyzer);
         AttachGraphSelectionBridge();
         AttachAnalysisEvents();
@@ -1071,6 +1075,7 @@ public partial class MainWindow : Window
         _analysisScheduler.Dispose();
         _symbolIndexBuilder.Dispose();
         _analyzer.Dispose();
+        _roslynSolutionLoader.Dispose();
         base.OnClosed(e);
     }
 }

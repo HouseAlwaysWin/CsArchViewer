@@ -1,28 +1,20 @@
 using CsArchViewer.Core.Models;
+using Microsoft.CodeAnalysis;
 
 namespace CsArchViewer.DotNet.Roslyn;
 
-public sealed class RoslynProjectAnalyzer : IDisposable
+public sealed class RoslynProjectAnalyzer
 {
-    private readonly RoslynSolutionLoader _solutionLoader = new();
     private readonly NamespaceDependencyAnalyzer _namespaceAnalyzer = new();
     private readonly ArchitectureRuleEngine _ruleEngine = new();
     private readonly CircularDependencyDetector _cycleDetector = new();
 
     public async Task<Dictionary<GraphType, ArchitectureGraph>> AnalyzeAsync(
-        string rootPath,
+        Solution solution,
         string rulesFilePath,
         CancellationToken cancellationToken = default)
     {
         var graphs = new Dictionary<GraphType, ArchitectureGraph>();
-        var solution = await _solutionLoader.LoadAsync(rootPath, cancellationToken);
-        if (solution is null)
-        {
-            graphs[GraphType.NamespaceDependencies] = new ArchitectureGraph();
-            graphs[GraphType.ArchitectureViolations] = new ArchitectureGraph();
-            return graphs;
-        }
-
         var namespaceGraph = await _namespaceAnalyzer.AnalyzeAsync(solution, cancellationToken);
         var cycles = _cycleDetector.DetectCycles(namespaceGraph);
         _cycleDetector.AnnotateGraphWithCircularEdges(namespaceGraph, cycles);
@@ -36,11 +28,6 @@ public sealed class RoslynProjectAnalyzer : IDisposable
         graphs[GraphType.NamespaceDependencies] = namespaceGraph;
         graphs[GraphType.ArchitectureViolations] = violationsGraph;
         return graphs;
-    }
-
-    public void Dispose()
-    {
-        _solutionLoader.Dispose();
     }
 
     private static ArchitectureGraph BuildViolationGraph(
