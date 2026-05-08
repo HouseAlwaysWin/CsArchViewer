@@ -5,6 +5,7 @@ namespace CsArchViewer.Metrics;
 
 public sealed class CodeMetricsAnalyzer
 {
+    private static readonly string[] SupportedExtensions = [".cs", ".xaml", ".razor", ".cshtml"];
     private readonly FileMetricsAnalyzer _fileAnalyzer = new();
     private readonly ProjectMetricsAnalyzer _projectAnalyzer = new();
     private readonly NamespaceMetricsAnalyzer _namespaceAnalyzer = new();
@@ -130,9 +131,15 @@ public sealed class CodeMetricsAnalyzer
         }
 
         return changedFiles
-            .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            .Where(IsSupportedMetricsFile)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static bool IsSupportedMetricsFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
     private bool HasFileFingerprintChanged(string filePath)

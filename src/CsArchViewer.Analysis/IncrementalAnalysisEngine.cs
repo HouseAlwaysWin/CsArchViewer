@@ -78,6 +78,18 @@ public sealed class IncrementalAnalysisEngine
             ];
         }
 
+        if (filePath.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase) ||
+            filePath.EndsWith(".razor", StringComparison.OrdinalIgnoreCase) ||
+            filePath.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase))
+        {
+            return
+            [
+                GraphType.FileStructure,
+                GraphType.FileDependencies,
+                GraphType.DependencyMatrix
+            ];
+        }
+
         return [];
     }
 }

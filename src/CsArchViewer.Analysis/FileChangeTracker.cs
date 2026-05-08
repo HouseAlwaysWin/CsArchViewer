@@ -3,6 +3,9 @@ namespace CsArchViewer.Analysis;
 public sealed class FileChangeTracker : IDisposable
 {
     private FileSystemWatcher? _csWatcher;
+    private FileSystemWatcher? _xamlWatcher;
+    private FileSystemWatcher? _razorWatcher;
+    private FileSystemWatcher? _cshtmlWatcher;
     private FileSystemWatcher? _csProjWatcher;
     private FileSystemWatcher? _slnWatcher;
 
@@ -17,6 +20,9 @@ public sealed class FileChangeTracker : IDisposable
         }
 
         _csWatcher = CreateWatcher(rootPath, "*.cs");
+        _xamlWatcher = CreateWatcher(rootPath, "*.xaml");
+        _razorWatcher = CreateWatcher(rootPath, "*.razor");
+        _cshtmlWatcher = CreateWatcher(rootPath, "*.cshtml");
         _csProjWatcher = CreateWatcher(rootPath, "*.csproj");
         _slnWatcher = CreateWatcher(rootPath, "*.sln");
     }
@@ -24,9 +30,15 @@ public sealed class FileChangeTracker : IDisposable
     public void Stop()
     {
         DisposeWatcher(_csWatcher);
+        DisposeWatcher(_xamlWatcher);
+        DisposeWatcher(_razorWatcher);
+        DisposeWatcher(_cshtmlWatcher);
         DisposeWatcher(_csProjWatcher);
         DisposeWatcher(_slnWatcher);
         _csWatcher = null;
+        _xamlWatcher = null;
+        _razorWatcher = null;
+        _cshtmlWatcher = null;
         _csProjWatcher = null;
         _slnWatcher = null;
     }

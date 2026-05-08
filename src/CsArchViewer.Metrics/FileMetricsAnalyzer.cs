@@ -9,6 +9,8 @@ namespace CsArchViewer.Metrics;
 
 public sealed class FileMetricsAnalyzer
 {
+    private static readonly string[] SupportedExtensions = [".cs", ".xaml", ".razor", ".cshtml"];
+
     public IReadOnlyList<FileMetrics> Analyze(
         string rootPath,
         IReadOnlyCollection<string>? changedFiles,
@@ -16,8 +18,10 @@ public sealed class FileMetricsAnalyzer
         IReadOnlyDictionary<GraphType, ArchitectureGraph> graphs)
     {
         var targetFiles = changedFiles is { Count: > 0 }
-            ? changedFiles.Where(IsCSharpFile).ToList()
-            : Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories).ToList();
+            ? changedFiles.Where(IsSupportedFile).ToList()
+            : Directory.EnumerateFiles(rootPath, "*.*", SearchOption.AllDirectories)
+                .Where(IsSupportedFile)
+                .ToList();
 
         var merged = new Dictionary<string, FileMetrics>(existingMetrics, StringComparer.OrdinalIgnoreCase);
         var (outgoing, incoming) = BuildDependencyLookups(graphs);
@@ -49,6 +53,16 @@ public sealed class FileMetricsAnalyzer
     }
 
     private static FileMetrics AnalyzeSingleFile(
+        string filePath,
+        IReadOnlyDictionary<string, int> outgoing,
+        IReadOnlyDictionary<string, int> incoming)
+    {
+        return IsCSharpFile(filePath)
+            ? AnalyzeSingleCSharpFile(filePath, outgoing, incoming)
+            : AnalyzeSingleMarkupFile(filePath, outgoing, incoming);
+    }
+
+    private static FileMetrics AnalyzeSingleCSharpFile(
         string filePath,
         IReadOnlyDictionary<string, int> outgoing,
         IReadOnlyDictionary<string, int> incoming)
@@ -99,6 +113,88 @@ public sealed class FileMetricsAnalyzer
             CodeLines = codeLines,
             CommentLines = Math.Max(0, commentLines),
             BlankLines = blankLines,
+            FileSizeBytes = fileInfo.Exists ? fileInfo.Length : 0,
+            LastModified = fileInfo.Exists ? fileInfo.LastWriteTimeUtc : DateTime.MinValue,
+            DependencyCount = outgoing.TryGetValue(filePath, out var outCount) ? outCount : 0,
+            ReferencedByCount = incoming.TryGetValue(filePath, out var inCount) ? inCount : 0
+        };
+    }
+
+    private static FileMetrics AnalyzeSingleMarkupFile(
+        string filePath,
+        IReadOnlyDictionary<string, int> outgoing,
+        IReadOnlyDictionary<string, int> incoming)
+    {
+        var lines = File.ReadAllLines(filePath);
+        var totalLines = lines.Length;
+        var codeLines = 0;
+        var commentLines = 0;
+        var inHtmlComment = false;
+        var inRazorComment = false;
+
+        foreach (var raw in lines)
+        {
+            var line = raw ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            var trimmed = line.Trim();
+
+            var isCommentLine = false;
+
+            if (inHtmlComment || inRazorComment)
+            {
+                isCommentLine = true;
+            }
+
+            if (!inHtmlComment && !inRazorComment)
+            {
+                if (trimmed.StartsWith("<!--", StringComparison.Ordinal))
+                {
+                    isCommentLine = true;
+                    inHtmlComment = !trimmed.Contains("-->", StringComparison.Ordinal);
+                }
+                else if (trimmed.StartsWith("@*", StringComparison.Ordinal))
+                {
+                    isCommentLine = true;
+                    inRazorComment = !trimmed.Contains("*@", StringComparison.Ordinal);
+                }
+            }
+            else
+            {
+                if (inHtmlComment && trimmed.Contains("-->", StringComparison.Ordinal))
+                {
+                    inHtmlComment = false;
+                }
+
+                if (inRazorComment && trimmed.Contains("*@", StringComparison.Ordinal))
+                {
+                    inRazorComment = false;
+                }
+            }
+
+            if (isCommentLine)
+            {
+                commentLines++;
+            }
+            else
+            {
+                codeLines++;
+            }
+        }
+
+        var blankLines = totalLines - codeLines - commentLines;
+        var fileInfo = new FileInfo(filePath);
+        return new FileMetrics
+        {
+            FilePath = filePath,
+            FileName = Path.GetFileName(filePath),
+            TotalLines = totalLines,
+            CodeLines = Math.Max(0, codeLines),
+            CommentLines = Math.Max(0, commentLines),
+            BlankLines = Math.Max(0, blankLines),
             FileSizeBytes = fileInfo.Exists ? fileInfo.Length : 0,
             LastModified = fileInfo.Exists ? fileInfo.LastWriteTimeUtc : DateTime.MinValue,
             DependencyCount = outgoing.TryGetValue(filePath, out var outCount) ? outCount : 0,
@@ -158,6 +254,12 @@ public sealed class FileMetricsAnalyzer
     private static bool IsCSharpFile(string path)
     {
         return path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSupportedFile(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
     private enum LineKind
