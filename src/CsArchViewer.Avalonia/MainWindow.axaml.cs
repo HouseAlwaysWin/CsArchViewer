@@ -1,8 +1,10 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CsArchViewer.Analysis;
@@ -16,6 +18,8 @@ namespace CsArchViewer.Avalonia;
 
 public partial class MainWindow : Window
 {
+    private GridLength _lastDiagnosticsHeight = new(180);
+
     private readonly DotNetProjectAnalyzer _analyzer = new();
     private readonly IncrementalAnalysisEngine _incrementalEngine;
     private readonly AnalysisScheduler _analysisScheduler = new();
@@ -185,6 +189,50 @@ public partial class MainWindow : Window
         using var writerStream = new StreamWriter(stream);
         await writerStream.WriteAsync(writer(graph));
         ViewModel.Status = $"Exported {formatName}: {file.Name}";
+    }
+
+    private void DiagnosticsSplitter_OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        ToggleDiagnosticsPanel();
+    }
+
+    private void DiagnosticsToggleButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        ToggleDiagnosticsPanel();
+    }
+
+    private void ToggleDiagnosticsPanel()
+    {
+        var layoutGrid = this.FindControl<Grid>("DiagnosticsLayoutGrid");
+        if (layoutGrid is null || layoutGrid.RowDefinitions.Count < 3)
+        {
+            return;
+        }
+
+        var diagnosticsContentRow = layoutGrid.RowDefinitions[2];
+        var toggleButton = this.FindControl<Button>("DiagnosticsToggleButton");
+        var currentHeight = diagnosticsContentRow.Height;
+        var isCollapsed = currentHeight.IsAbsolute && currentHeight.Value <= 1;
+        if (isCollapsed)
+        {
+            diagnosticsContentRow.Height = _lastDiagnosticsHeight;
+            if (toggleButton is not null)
+            {
+                toggleButton.Content = "▾";
+            }
+            return;
+        }
+
+        if (currentHeight.IsAbsolute && currentHeight.Value > 1)
+        {
+            _lastDiagnosticsHeight = currentHeight;
+        }
+
+        diagnosticsContentRow.Height = new GridLength(0);
+        if (toggleButton is not null)
+        {
+            toggleButton.Content = "▸";
+        }
     }
 
     private void QueueAnalysis(

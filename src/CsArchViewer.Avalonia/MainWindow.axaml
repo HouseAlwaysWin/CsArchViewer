@@ -74,7 +74,12 @@
             </DockPanel>
           </Border>
 
-          <Grid RowDefinitions="*,6,Auto" MinHeight="200">
+          <Grid x:Name="DiagnosticsLayoutGrid" MinHeight="200">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="*" />
+              <RowDefinition Height="6" />
+              <RowDefinition Height="180" />
+            </Grid.RowDefinitions>
           <Grid Grid.Row="0"
                 ColumnDefinitions="260,6,*,6,300"
                 MinHeight="120">
@@ -259,7 +264,9 @@
           </Grid>
 
           <GridSplitter Grid.Row="1"
+                        x:Name="DiagnosticsSplitter"
                         Height="6"
+                        DoubleTapped="DiagnosticsSplitter_OnDoubleTapped"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         Background="#1E293B"
@@ -270,12 +277,21 @@
                   BorderThickness="0,1,0,0"
                   Padding="8"
                   Background="#0B1220">
-            <Expander IsExpanded="False">
-              <Expander.Header>
-                <TextBlock Text="Diagnostics" FontWeight="Bold" />
-              </Expander.Header>
-              <ListBox Margin="0,8,0,0"
-                       MaxHeight="220"
+            <Grid RowDefinitions="Auto,*">
+              <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Left" Text="Diagnostics" FontWeight="Bold" />
+                <Button x:Name="DiagnosticsToggleButton"
+                        DockPanel.Dock="Right"
+                        Width="24"
+                        Height="20"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Content="▾"
+                        Click="DiagnosticsToggleButton_OnClick" />
+              </DockPanel>
+              <ListBox Grid.Row="1"
+                       Margin="0,8,0,0"
                        ItemsSource="{Binding Diagnostics}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
@@ -289,7 +305,7 @@
                   </DataTemplate>
                 </ListBox.ItemTemplate>
               </ListBox>
-            </Expander>
+            </Grid>
           </Border>
         </Grid>
         </DockPanel>
