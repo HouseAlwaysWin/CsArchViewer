@@ -33,6 +33,30 @@ Lightweight .NET architecture explorer built with Avalonia.
   - LayerViolation
   - DependencyDepthWarning
   - UnusedReference
+- Code Metrics / LOC Analysis:
+  - File LOC / Code LOC / Comment LOC / Blank LOC
+  - Project metrics / Namespace metrics / Dependency metrics
+  - Architecture health warnings:
+    - LargeFileWarning
+    - LargeNamespaceWarning
+    - HighDependencyWarning
+    - CircularDependencyWarning
+    - DeepDependencyWarning
+- Metrics Dashboard (Avalonia)
+- Graph overlay modes:
+  - Dependency Count
+  - LOC Heatmap
+  - Project Size
+  - Diagnostics Severity
+- Metrics filters:
+  - Large Files
+  - Highly Coupled
+  - Circular Dependencies
+  - High Dependency Depth
+- Metrics export:
+  - Metrics JSON
+  - Metrics CSV
+  - Metrics Markdown report
 - Select nodes and inspect details.
 - Reload analysis from the same folder.
 - Search and type filter.
@@ -55,6 +79,7 @@ src/
   CsArchViewer.Export/
   CsArchViewer.Analysis/
   CsArchViewer.Diagnostics/
+  CsArchViewer.Metrics/
   CsArchViewer.Avalonia/
 ```
 
@@ -65,6 +90,7 @@ src/
 - `CsArchViewer.Export`: Mermaid / JSON / DOT exporters.
 - `CsArchViewer.Analysis`: incremental engine, cache, scheduler, file tracker, explorer/search services.
 - `CsArchViewer.Diagnostics`: architecture diagnostic analyzers and severity model.
+- `CsArchViewer.Metrics`: Roslyn-based LOC analyzers, aggregated metrics and health warnings.
 - `CsArchViewer.Avalonia`: UI, graph canvas, interaction, details pane.
 
 ## Build

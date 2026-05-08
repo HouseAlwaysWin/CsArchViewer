@@ -13,6 +13,8 @@ using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
 using CsArchViewer.DotNet;
 using CsArchViewer.Export;
+using CsArchViewer.Metrics;
+using CsArchViewer.Metrics.Models;
 
 namespace CsArchViewer.Avalonia;
 
@@ -30,6 +32,12 @@ public partial class MainWindow : Window
     private readonly MermaidExporter _mermaidExporter = new();
     private readonly JsonExporter _jsonExporter = new();
     private readonly GraphvizExporter _graphvizExporter = new();
+    private readonly MetricsJsonExporter _metricsJsonExporter = new();
+    private readonly MetricsCsvExporter _metricsCsvExporter = new();
+    private readonly MetricsMarkdownExporter _metricsMarkdownExporter = new();
+    private readonly CodeMetricsAnalyzer _codeMetricsAnalyzer = new();
+
+    private MetricsSummary? _latestMetricsSummary;
 
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
@@ -157,6 +165,15 @@ public partial class MainWindow : Window
             case "DOT":
                 await ExportAsync("dot", ".dot", graph => _graphvizExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
                 break;
+            case "Metrics JSON":
+                await ExportMetricsAsync("metrics json", ".metrics.json", summary => _metricsJsonExporter.Export(summary));
+                break;
+            case "Metrics CSV":
+                await ExportMetricsAsync("metrics csv", ".metrics.csv", summary => _metricsCsvExporter.Export(summary));
+                break;
+            case "Metrics Markdown":
+                await ExportMetricsAsync("metrics markdown", ".metrics.md", summary => _metricsMarkdownExporter.Export(summary));
+                break;
             default:
                 await ExportAsync("mermaid", ".mmd", graph => _mermaidExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
                 break;
@@ -192,6 +209,37 @@ public partial class MainWindow : Window
         await using var stream = await file.OpenWriteAsync();
         using var writerStream = new StreamWriter(stream);
         await writerStream.WriteAsync(writer(graph));
+        ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
+    }
+
+    private async Task ExportMetricsAsync(string formatName, string extension, Func<MetricsSummary, string> writer)
+    {
+        if (_latestMetricsSummary is null || StorageProvider is null)
+        {
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
+            SuggestedFileName = $"csarchviewer-metrics-{DateTime.Now:yyyyMMddHHmmss}{extension}",
+            FileTypeChoices =
+            [
+                new FilePickerFileType(formatName.ToUpperInvariant())
+                {
+                    Patterns = [$"*{extension}"]
+                }
+            ]
+        });
+
+        if (file is null)
+        {
+            return;
+        }
+
+        await using var stream = await file.OpenWriteAsync();
+        using var writerStream = new StreamWriter(stream);
+        await writerStream.WriteAsync(writer(_latestMetricsSummary));
         ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
     }
 
@@ -253,12 +301,27 @@ public partial class MainWindow : Window
             try
             {
                 var update = await _incrementalEngine.AnalyzeAsync(rootPath, changedFiles, token);
-                var diagnostics = _diagnosticsEngine.Analyze(update.Result.Graphs);
+                var metrics = await _codeMetricsAnalyzer.AnalyzeAsync(update.Result, changedFiles, token);
+                _latestMetricsSummary = metrics;
+
+                var diagnostics = _diagnosticsEngine.Analyze(update.Result.Graphs).ToList();
+                diagnostics.AddRange(metrics.HealthWarnings.Select(warning => new ArchitectureDiagnostic
+                {
+                    Type = warning.Type,
+                    Severity = warning.Severity.Equals("Error", StringComparison.OrdinalIgnoreCase)
+                        ? DiagnosticSeverity.Error
+                        : warning.Severity.Equals("Warning", StringComparison.OrdinalIgnoreCase)
+                            ? DiagnosticSeverity.Warning
+                            : DiagnosticSeverity.Info,
+                    Source = warning.Source,
+                    Message = warning.Message
+                }));
                 _searchIndex.BuildIndex(update.Result);
 
                 Dispatcher.UIThread.Post(() =>
                 {
                     ViewModel.SetAnalysisResult(update.Result);
+                    ViewModel.SetMetricsSummary(metrics);
                     ViewModel.SetDiagnostics(diagnostics);
                     ViewModel.IsAnalyzing = false;
                     ViewModel.AnalysisStatus = update.IsIncremental

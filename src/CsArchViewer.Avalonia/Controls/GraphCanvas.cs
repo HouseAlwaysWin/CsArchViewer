@@ -203,7 +203,13 @@ public sealed class GraphCanvas : Control
             }
 
             var topLeft = TransformPoint(new Point(node.X, node.Y));
-            var rect = new Rect(topLeft, new Size(NodeWidth * _zoom, NodeHeight * _zoom));
+            var overlayScale = node.Metadata.TryGetValue("OverlayScale", out var rawScale) &&
+                               double.TryParse(rawScale, out var parsedScale)
+                ? Math.Clamp(parsedScale, 0.7, 2.0)
+                : 1.0;
+            var scaledWidth = NodeWidth * _zoom * overlayScale;
+            var scaledHeight = NodeHeight * _zoom * overlayScale;
+            var rect = new Rect(topLeft, new Size(scaledWidth, scaledHeight));
             var outputType = node.Metadata.TryGetValue("OutputType", out var typeValue) ? typeValue : string.Empty;
             var isSearchHit = node.Metadata.TryGetValue("IsSearchHit", out var hitValue) &&
                               string.Equals(hitValue, "true", StringComparison.OrdinalIgnoreCase);
@@ -226,6 +232,11 @@ public sealed class GraphCanvas : Control
                     : libraryFill
             };
             var fill = ReferenceEquals(node, SelectedNode) ? selectedFill : baseFill;
+            if (node.Metadata.TryGetValue("OverlayColor", out var overlayColor) &&
+                !string.IsNullOrWhiteSpace(overlayColor))
+            {
+                fill = new SolidColorBrush(Color.Parse(overlayColor));
+            }
 
             context.FillRectangle(fill, rect, 8);
             context.DrawRectangle(isSearchHit ? highlightedPen : new Pen(Brushes.Black, 1), rect, 8);

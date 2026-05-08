@@ -22,6 +22,7 @@
     <ProjectReference Include="..\CsArchViewer.Export\CsArchViewer.Export.csproj" />
     <ProjectReference Include="..\CsArchViewer.Analysis\CsArchViewer.Analysis.csproj" />
     <ProjectReference Include="..\CsArchViewer.Diagnostics\CsArchViewer.Diagnostics.csproj" />
+    <ProjectReference Include="..\CsArchViewer.Metrics\CsArchViewer.Metrics.csproj" />
   </ItemGroup>
 
   <ItemGroup>
