@@ -310,14 +310,30 @@ public sealed class NodeDetailsViewModel : ViewModelBase
         ProjectReferences = node.Metadata.TryGetValue("ProjectReferences", out var references) ? references : "-";
         PackageReferences = node.Metadata.TryGetValue("PackageReferences", out var packages) ? packages : "-";
         Extension = node.Metadata.TryGetValue("Extension", out var extension) ? extension : "-";
-        Size = node.Metadata.TryGetValue("Size", out var size) ? size : "-";
+        Size = node.Metadata.TryGetValue("FileSize", out var fileSize)
+            ? fileSize
+            : node.Metadata.TryGetValue("Size", out var size)
+                ? size
+                : "-";
         LastModified = node.Metadata.TryGetValue("LastModified", out var modified) ? modified : "-";
-        ChildCount = node.Metadata.TryGetValue("ChildCount", out var childCount) ? childCount : "-";
+        ChildCount = node.Metadata.TryGetValue("TotalFiles", out var totalFiles)
+            ? totalFiles
+            : node.Metadata.TryGetValue("ChildCount", out var childCount)
+                ? childCount
+                : "-";
         ReferencedNamespaces = node.Metadata.TryGetValue("ReferencedNamespaces", out var referencedNamespaces) ? referencedNamespaces : "-";
-        ReferencedBy = node.Metadata.TryGetValue("ReferencedBy", out var referencedBy) ? referencedBy : "-";
+        ReferencedBy = node.Metadata.TryGetValue("ReferencedByCount", out var referencedByCount)
+            ? referencedByCount
+            : node.Metadata.TryGetValue("ReferencedBy", out var referencedBy)
+                ? referencedBy
+                : "-";
         Rule = node.Metadata.TryGetValue("Rule", out var rule) ? rule : "-";
         Source = node.Metadata.TryGetValue("Source", out var source) ? source : "-";
-        Target = node.Metadata.TryGetValue("Target", out var target) ? target : "-";
+        Target = node.Metadata.TryGetValue("LargestFile", out var largestFile)
+            ? largestFile
+            : node.Metadata.TryGetValue("Target", out var target)
+                ? target
+                : "-";
         Message = node.Metadata.TryGetValue("Message", out var message) ? message : "-";
         FullTypeName = node.Metadata.TryGetValue("FullTypeName", out var fullTypeName) ? fullTypeName : "-";
         NamespaceName = node.Metadata.TryGetValue("Namespace", out var namespaceName) ? namespaceName : "-";
@@ -331,6 +347,25 @@ public sealed class NodeDetailsViewModel : ViewModelBase
         DependencyCount = node.Metadata.TryGetValue("DependencyCount", out var count) ? count : "0";
         CircularDependencyCount = node.Metadata.TryGetValue("CircularDependencyCount", out var circular) ? circular : "0";
         ViolationCount = node.Metadata.TryGetValue("ViolationCount", out var violationCount) ? violationCount : "0";
-        LineCount = node.Metadata.TryGetValue("LineCount", out var lineCount) ? lineCount : "-";
+        LineCount = node.Metadata.TryGetValue("TotalLines", out var totalLines)
+            ? totalLines
+            : node.Metadata.TryGetValue("LineCount", out var lineCount)
+                ? lineCount
+                : "-";
+
+        if (node.Metadata.TryGetValue("CodeLines", out var codeLines))
+        {
+            PackageReferences = $"{PackageReferences}{Environment.NewLine}Code: {codeLines}";
+        }
+
+        if (node.Metadata.TryGetValue("CommentLines", out var commentLines))
+        {
+            PackageReferences = $"{PackageReferences}{Environment.NewLine}Comment: {commentLines}";
+        }
+
+        if (node.Metadata.TryGetValue("BlankLines", out var blankLines))
+        {
+            PackageReferences = $"{PackageReferences}{Environment.NewLine}Blank: {blankLines}";
+        }
     }
 }
