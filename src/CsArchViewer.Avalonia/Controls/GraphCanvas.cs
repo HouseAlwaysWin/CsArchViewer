@@ -135,6 +135,7 @@ public sealed class GraphCanvas : Control
         var cshtmlFileFill = new SolidColorBrush(Color.Parse("#F97316"));
         var solutionFill = new SolidColorBrush(Color.Parse("#7C2D12"));
         var packageFill = new SolidColorBrush(Color.Parse("#14B8A6"));
+        var groupFill = new SolidColorBrush(Color.Parse("#0F4C5C"));
         var namespaceFill = new SolidColorBrush(Color.Parse("#0F766E"));
         var violationFill = new SolidColorBrush(Color.Parse("#B91C1C"));
         var typeFill = new SolidColorBrush(Color.Parse("#1D4ED8"));
@@ -143,6 +144,7 @@ public sealed class GraphCanvas : Control
         var enumFill = new SolidColorBrush(Color.Parse("#BE185D"));
         var recordFill = new SolidColorBrush(Color.Parse("#10B981"));
         var highlightedPen = new Pen(new SolidColorBrush(Color.Parse("#F59E0B")), 2);
+        var dependencyPathPen = new Pen(new SolidColorBrush(Color.Parse("#22D3EE")), 3);
         var textBrush = Brushes.White;
 
         var renderedEdges = new List<RenderedEdge>();
@@ -175,10 +177,14 @@ public sealed class GraphCanvas : Control
         var colors = AssignEdgeColors(renderedEdges);
         foreach (var rendered in renderedEdges)
         {
-            var edgeColor = colors.TryGetValue(GetEdgeKey(rendered.Edge), out var color)
+            var isDependencyPathHit = rendered.Edge.Metadata.TryGetValue("IsDependencyPathHit", out var pathValue) &&
+                                      string.Equals(pathValue, "true", StringComparison.OrdinalIgnoreCase);
+            var edgeColor = isDependencyPathHit
+                ? Color.Parse("#FDE047")
+                : colors.TryGetValue(GetEdgeKey(rendered.Edge), out var color)
                 ? color
                 : Color.Parse("#6B7280");
-            var pen = new Pen(new SolidColorBrush(edgeColor), 1.5);
+            var pen = new Pen(new SolidColorBrush(edgeColor), isDependencyPathHit ? 3 : 1.5);
 
             var referencePath = rendered.Path;
             DrawPolyline(context, pen, referencePath.Points);
@@ -216,8 +222,11 @@ public sealed class GraphCanvas : Control
             var outputType = node.Metadata.TryGetValue("OutputType", out var typeValue) ? typeValue : string.Empty;
             var isSearchHit = node.Metadata.TryGetValue("IsSearchHit", out var hitValue) &&
                               string.Equals(hitValue, "true", StringComparison.OrdinalIgnoreCase);
+            var isDependencyPathHit = node.Metadata.TryGetValue("IsDependencyPathHit", out var pathValue) &&
+                                      string.Equals(pathValue, "true", StringComparison.OrdinalIgnoreCase);
             var baseFill = node.Type switch
             {
+                ArchitectureNodeType.Group => groupFill,
                 ArchitectureNodeType.Folder => folderFill,
                 ArchitectureNodeType.File => ResolveFileFill(node, fileFill, xamlFileFill, razorFileFill, cshtmlFileFill),
                 ArchitectureNodeType.Solution => solutionFill,
@@ -242,7 +251,10 @@ public sealed class GraphCanvas : Control
             }
 
             context.FillRectangle(fill, rect, 8);
-            context.DrawRectangle(isSearchHit ? highlightedPen : new Pen(Brushes.Black, 1), rect, 8);
+            context.DrawRectangle(
+                isDependencyPathHit ? dependencyPathPen : isSearchHit ? highlightedPen : new Pen(Brushes.Black, 1),
+                rect,
+                8);
 
             var displayName = BuildNodeDisplayName(node);
             var text = new FormattedText(
@@ -408,7 +420,7 @@ public sealed class GraphCanvas : Control
         base.OnPointerWheelChanged(e);
     }
 
-    private void FitToScreen()
+    public void FitToScreen()
     {
         var visibleNodes = Nodes.Where(IsNodeVisible).ToList();
         if (visibleNodes.Count == 0)
@@ -431,6 +443,20 @@ public sealed class GraphCanvas : Control
         var viewportCenter = new Point(Bounds.Width / 2d, Bounds.Height / 2d);
         _panOffset = viewportCenter - new Point(contentCenter.X * _zoom, contentCenter.Y * _zoom);
 
+        InvalidateVisual();
+    }
+
+    public void ZoomToNode(ArchitectureNode node)
+    {
+        if (!Nodes.Contains(node) || Bounds.Width <= 1 || Bounds.Height <= 1)
+        {
+            return;
+        }
+
+        _zoom = 1.45;
+        var nodeCenter = new Point(node.X + (NodeWidth / 2d), node.Y + (NodeHeight / 2d));
+        var viewportCenter = new Point(Bounds.Width / 2d, Bounds.Height / 2d);
+        _panOffset = viewportCenter - new Point(nodeCenter.X * _zoom, nodeCenter.Y * _zoom);
         InvalidateVisual();
     }
 

@@ -60,12 +60,22 @@
                             Click="Export_OnClick" />
                   </StackPanel>
                   <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
-                  <ComboBox Width="190"
-                            ItemsSource="{Binding AvailableGraphTypes}"
-                            SelectedItem="{Binding SelectedGraphType, Mode=TwoWay}" />
-                  <ComboBox Width="130"
-                            ItemsSource="{Binding AvailableTypeFilters}"
-                            SelectedItem="{Binding SelectedTypeFilter, Mode=TwoWay}" />
+                   <ComboBox Width="190"
+                             ItemsSource="{Binding AvailableGraphTypes}"
+                             SelectedItem="{Binding SelectedGraphType, Mode=TwoWay}" />
+                   <TextBlock VerticalAlignment="Center"
+                              Foreground="#CBD5E1"
+                              Text="{Binding GroupByText}" />
+                   <ComboBox Width="130"
+                             ItemsSource="{Binding AvailableGroupingModes}"
+                             SelectedItem="{Binding SelectedGroupingMode, Mode=TwoWay}" />
+                   <Button Content="{Binding FitToScreenText}"
+                           Click="FitToScreen_OnClick" />
+                   <Button Content="{Binding ZoomToSelectionText}"
+                           Click="ZoomToSelection_OnClick" />
+                   <ComboBox Width="130"
+                             ItemsSource="{Binding AvailableTypeFilters}"
+                             SelectedItem="{Binding SelectedTypeFilter, Mode=TwoWay}" />
                   <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
                   <TextBox Width="280"
                            VerticalAlignment="Center"
@@ -79,6 +89,12 @@
                          Foreground="#94A3B8"
                          FontSize="12"
                          Text="{Binding TopStatus}"
+                         TextWrapping="Wrap" />
+              <TextBlock DockPanel.Dock="Top"
+                         Margin="0,2,0,0"
+                         Foreground="#7DD3FC"
+                         FontSize="11"
+                         Text="{Binding PerformanceStatusText}"
                          TextWrapping="Wrap" />
             </DockPanel>
           </Border>
@@ -546,7 +562,7 @@
                   Background="#0B1220">
             <TabControl>
               <TabItem Header="{Binding BottomPanelDiagnosticsTabText}" FontWeight="SemiBold" FontSize="13">
-            <Grid ColumnDefinitions="2*,6,*" RowDefinitions="Auto,*">
+             <Grid ColumnDefinitions="2*,6,*" RowDefinitions="Auto,*">
               <DockPanel LastChildFill="False">
                 <Button x:Name="DiagnosticsToggleButton"
                         DockPanel.Dock="Left"
@@ -561,10 +577,19 @@
                            Margin="6,0,0,0"
                            Text="{Binding DiagnosticsTitleText}"
                            FontWeight="Bold" />
-              </DockPanel>
+                <ComboBox DockPanel.Dock="Right"
+                          Width="140"
+                          Margin="8,0,0,0"
+                          ItemsSource="{Binding AvailableDiagnosticsSeverityOptions}"
+                          SelectedItem="{Binding SelectedDiagnosticsSeverityFilter, Mode=TwoWay}" />
+                <Button DockPanel.Dock="Right"
+                        Margin="8,0,0,0"
+                        Content="{Binding ExportDiagnosticsText}"
+                        Click="ExportDiagnostics_OnClick" />
+               </DockPanel>
               <ListBox Grid.Row="1"
                        Margin="0,8,0,0"
-                       ItemsSource="{Binding Diagnostics}">
+                       ItemsSource="{Binding FilteredDiagnostics}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
                     <StackPanel Spacing="2" Margin="2">
@@ -610,10 +635,50 @@
                 </ListBox.ItemTemplate>
               </ListBox>
             </Grid>
-              </TabItem>
-              <TabItem Header="{Binding SymbolExplorerReferencesTabText}" FontWeight="SemiBold" FontSize="13">
-                <DockPanel LastChildFill="True">
-                  <StackPanel DockPanel.Dock="Top"
+               </TabItem>
+               <TabItem Header="{Binding DependencyPathTabText}" FontWeight="SemiBold" FontSize="13">
+                 <DockPanel LastChildFill="True">
+                   <StackPanel DockPanel.Dock="Top"
+                               Spacing="8"
+                               Margin="0,0,0,8">
+                     <TextBlock Text="{Binding DependencyPathSourceTextLabel}"
+                                FontWeight="Bold" />
+                     <TextBlock Text="{Binding DependencyPathSourceText}"
+                                Foreground="#CBD5E1"
+                                TextWrapping="Wrap" />
+                     <TextBlock Text="{Binding DependencyPathTargetTextLabel}"
+                                FontWeight="Bold" />
+                     <TextBox Text="{Binding DependencyPathTargetQuery, Mode=TwoWay}" />
+                     <StackPanel Orientation="Horizontal" Spacing="8">
+                       <Button Content="{Binding DependencyPathShortestText}"
+                               Click="DependencyPathShortest_OnClick" />
+                       <Button Content="{Binding DependencyPathCycleText}"
+                               Click="DependencyPathCycle_OnClick" />
+                     </StackPanel>
+                     <TextBlock Text="{Binding DependencyPathSummaryText}"
+                                Foreground="#93C5FD"
+                                TextWrapping="Wrap" />
+                   </StackPanel>
+                   <Grid ColumnDefinitions="2*,*" RowDefinitions="Auto,*">
+                     <TextBlock Text="{Binding DependencyPathTabText}"
+                                FontWeight="Bold" />
+                     <TextBlock Grid.Column="1"
+                                Margin="12,0,0,0"
+                                Text="{Binding RecentSearchesText}"
+                                FontWeight="Bold" />
+                     <ListBox Grid.Row="1"
+                              Margin="0,8,6,0"
+                              ItemsSource="{Binding DependencyPathSteps}" />
+                     <ListBox Grid.Row="1"
+                              Grid.Column="1"
+                              Margin="6,8,0,0"
+                              ItemsSource="{Binding RecentSearches}" />
+                   </Grid>
+                 </DockPanel>
+               </TabItem>
+               <TabItem Header="{Binding SymbolExplorerReferencesTabText}" FontWeight="SemiBold" FontSize="13">
+                 <DockPanel LastChildFill="True">
+                   <StackPanel DockPanel.Dock="Top"
                               Orientation="Horizontal"
                               Spacing="8"
                               Margin="0,0,0,8">
@@ -639,11 +704,39 @@
                         </StackPanel>
                       </DataTemplate>
                     </ListBox.ItemTemplate>
-                  </ListBox>
-                </DockPanel>
-              </TabItem>
-            </TabControl>
-          </Border>
+                   </ListBox>
+                 </DockPanel>
+               </TabItem>
+               <TabItem Header="{Binding LogsTabText}" FontWeight="SemiBold" FontSize="13">
+                 <DockPanel LastChildFill="True">
+                   <TextBlock DockPanel.Dock="Top"
+                              Margin="0,0,0,8"
+                              Foreground="#7DD3FC"
+                              Text="{Binding PerformanceStatusText}"
+                              TextWrapping="Wrap" />
+                   <ListBox ItemsSource="{Binding LogEntries}">
+                     <ListBox.ItemTemplate>
+                       <DataTemplate x:DataType="core:AppLogEntry">
+                         <StackPanel Margin="2" Spacing="2">
+                           <StackPanel Orientation="Horizontal" Spacing="6">
+                             <TextBlock FontWeight="SemiBold"
+                                        Text="{Binding Timestamp, StringFormat={}{0:HH:mm:ss}}" />
+                             <TextBlock FontWeight="SemiBold"
+                                        Text="{Binding Level}" />
+                             <TextBlock FontWeight="SemiBold"
+                                        Text="{Binding Category}" />
+                           </StackPanel>
+                           <TextBlock Foreground="#CBD5E1"
+                                      Text="{Binding Message}"
+                                      TextWrapping="Wrap" />
+                         </StackPanel>
+                       </DataTemplate>
+                     </ListBox.ItemTemplate>
+                   </ListBox>
+                 </DockPanel>
+               </TabItem>
+             </TabControl>
+           </Border>
         </Grid>
         </DockPanel>
       </TabItem>

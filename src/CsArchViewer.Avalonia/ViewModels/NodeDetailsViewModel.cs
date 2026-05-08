@@ -320,6 +320,8 @@ public sealed class NodeDetailsViewModel : ViewModelBase
             ? totalFiles
             : node.Metadata.TryGetValue("ChildCount", out var childCount)
                 ? childCount
+                : node.Metadata.TryGetValue("SummaryCount", out var summaryCount)
+                    ? summaryCount
                 : "-";
         ReferencedNamespaces = node.Metadata.TryGetValue("ReferencedNamespaces", out var referencedNamespaces) ? referencedNamespaces : "-";
         ReferencedBy = node.Metadata.TryGetValue("ReferencedByCount", out var referencedByCount)
@@ -335,6 +337,10 @@ public sealed class NodeDetailsViewModel : ViewModelBase
                 ? target
                 : "-";
         Message = node.Metadata.TryGetValue("Message", out var message) ? message : "-";
+        if (Message == "-" && node.Metadata.TryGetValue("GroupSummary", out var groupSummary))
+        {
+            Message = groupSummary;
+        }
         FullTypeName = node.Metadata.TryGetValue("FullTypeName", out var fullTypeName) ? fullTypeName : "-";
         NamespaceName = node.Metadata.TryGetValue("Namespace", out var namespaceName) ? namespaceName : "-";
         File = node.Metadata.TryGetValue("File", out var file) ? file : "-";

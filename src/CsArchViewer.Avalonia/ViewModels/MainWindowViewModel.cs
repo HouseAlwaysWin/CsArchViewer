@@ -77,6 +77,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _dependencyPathSummaryText = string.Empty;
     private bool _restoreLastSession = true;
     private bool _autoSaveSession = true;
+    private PerformanceSnapshot? _lastPerformanceSnapshot;
+    private ArchitectureGraph? _activeGraph;
+    private readonly Dictionary<string, Dictionary<string, NodeLayoutState>> _persistedGraphLayouts =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public ObservableCollection<ProjectInfo> Projects { get; } = [];
     public ObservableCollection<ArchitectureNode> ListedNodes { get; } = [];
@@ -120,6 +124,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref _searchText, value))
             {
                 ApplySearch();
+                UpdateRecentSearchHistory(RecentSearches, value);
             }
         }
     }
@@ -373,7 +378,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     public string SymbolExplorerSearchQuery
     {
         get => _symbolExplorerSearchQuery;
-        set => SetProperty(ref _symbolExplorerSearchQuery, value);
+        set
+        {
+            if (SetProperty(ref _symbolExplorerSearchQuery, value))
+            {
+                UpdateRecentSearchHistory(RecentSymbolSearches, value);
+            }
+        }
     }
 
     public SymbolInfoModel? SelectedExplorerSymbol
@@ -476,8 +487,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _selectedGraphType;
         set
         {
+            var previousGraphType = _selectedGraphType;
             if (SetProperty(ref _selectedGraphType, value))
             {
+                CaptureGraphLayout(previousGraphType, _selectedGroupingMode);
                 BuildActiveGraph();
                 ApplyFilters();
                 UpdateGraphStatus();
@@ -491,8 +504,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _selectedGroupingMode;
         set
         {
+            var previousGroupingMode = _selectedGroupingMode;
             if (SetProperty(ref _selectedGroupingMode, value))
             {
+                CaptureGraphLayout(_selectedGraphType, previousGroupingMode);
                 BuildActiveGraph();
                 ApplyFilters();
                 UpdateGraphStatus();
@@ -508,9 +523,17 @@ public sealed class MainWindowViewModel : ViewModelBase
             .OrderBy(project => project.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         _graphs = result.Graphs;
+        _drillProjectPath = null;
+        _drillFolderPath = null;
 
-        SelectedTypeFilter = "All";
-        SelectedGraphType = GraphType.ProjectDependencies;
+        if (!_graphs.ContainsKey(_selectedGraphType))
+        {
+            _selectedGraphType = _graphs.ContainsKey(GraphType.ProjectDependencies)
+                ? GraphType.ProjectDependencies
+                : _graphs.Keys.FirstOrDefault();
+            OnPropertyChanged(nameof(SelectedGraphType));
+        }
+
         BuildActiveGraph();
 
         Graph.SelectedNode = null;
@@ -534,7 +557,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         ExplorerSymbolDetailsText = string.Empty;
         ExplorerMethodMetadataText = string.Empty;
         ExplorerTypeMembersSummary = string.Empty;
-        SymbolExplorerSearchQuery = string.Empty;
     }
 
     public void SetMetricsSummary(MetricsSummary summary)
@@ -584,16 +606,21 @@ public sealed class MainWindowViewModel : ViewModelBase
             .DistinctBy(d => $"{d.Severity}|{d.Type}|{d.Source}|{d.Target}|{d.Message}", StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+        _allDiagnostics = uniqueDiagnostics;
+
         Diagnostics.Clear();
         foreach (var diagnostic in uniqueDiagnostics)
         {
             Diagnostics.Add(diagnostic);
         }
+
+        ApplyDiagnosticsFilters();
     }
 
     public void SelectNode(ArchitectureNode? node)
     {
         Graph.SelectedNode = node;
+        DependencyPathSourceText = node?.Name ?? "-";
         if (node is null)
         {
             NodeDetails.SetNode(null, null);
@@ -651,7 +678,150 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public ArchitectureGraph? GetCurrentGraph()
     {
-        return _graphs.TryGetValue(SelectedGraphType, out var graph) ? graph : null;
+        return _activeGraph;
+    }
+
+    public WorkspaceState ExportWorkspaceState()
+    {
+        CaptureGraphLayout(SelectedGraphType, SelectedGroupingMode);
+
+        return new WorkspaceState
+        {
+            Settings = new AppSettings
+            {
+                Theme = SelectedTheme,
+                GraphLayout = SelectedGraphLayout,
+                OverlayMode = SelectedOverlayMode,
+                LanguageCode = SelectedLanguage == "English" ? "en-US" : "zh-TW",
+                ShowLineCountOnNodes = ShowLineCountOnNodes,
+                RestoreLastSession = RestoreLastSession,
+                AutoSaveSession = AutoSaveSession
+            },
+            Session = new SessionState
+            {
+                RootPath = CurrentRootPath,
+                SelectedGraphType = SelectedGraphType,
+                SelectedGroupingMode = SelectedGroupingMode,
+                SearchText = SearchText,
+                SymbolSearchText = SymbolExplorerSearchQuery,
+                SelectedTypeFilter = SelectedTypeFilter,
+                SelectedMetricsFilter = SelectedMetricsFilter,
+                SelectedOverlayMode = SelectedOverlayMode,
+                SelectedDiagnosticsSeverityFilter = SelectedDiagnosticsSeverityFilter,
+                RecentSearches = RecentSearches.ToList(),
+                RecentSymbolSearches = RecentSymbolSearches.ToList(),
+                GraphLayouts = CloneGraphLayouts()
+            }
+        };
+    }
+
+    public void ApplyWorkspaceState(WorkspaceState state)
+    {
+        var settings = state.Settings;
+        var session = state.Session;
+
+        SelectedTheme = ResolveOption(settings.Theme, ThemeOptions, "Dark");
+        SelectedGraphLayout = ResolveOption(settings.GraphLayout, GraphLayoutOptions, "Auto");
+        SelectedOverlayMode = ResolveOption(settings.OverlayMode, OverlayModeOptions, "None");
+        ShowLineCountOnNodes = settings.ShowLineCountOnNodes;
+        RestoreLastSession = settings.RestoreLastSession;
+        AutoSaveSession = settings.AutoSaveSession;
+        SelectedLanguage = string.Equals(settings.LanguageCode, "en-US", StringComparison.OrdinalIgnoreCase)
+            ? "English"
+            : "繁體中文";
+
+        CopyGraphLayoutsFromSession(session.GraphLayouts);
+        ReplaceCollection(RecentSearches, session.RecentSearches);
+        ReplaceCollection(RecentSymbolSearches, session.RecentSymbolSearches);
+
+        CurrentRootPath = session.RootPath;
+        SelectedTypeFilter = ResolveOption(session.SelectedTypeFilter, TypeFilterOptions, "All");
+        SelectedMetricsFilter = ResolveOption(session.SelectedMetricsFilter, MetricsFilterOptions, "All");
+        SelectedDiagnosticsSeverityFilter = ResolveOption(session.SelectedDiagnosticsSeverityFilter, DiagnosticsSeverityOptions, "All");
+        SearchText = session.SearchText ?? string.Empty;
+        SymbolExplorerSearchQuery = session.SymbolSearchText ?? string.Empty;
+        SelectedGroupingMode = session.SelectedGroupingMode;
+        SelectedGraphType = session.SelectedGraphType;
+    }
+
+    public void AppendLogEntry(AppLogEntry entry)
+    {
+        LogEntries.Add(entry);
+        while (LogEntries.Count > 500)
+        {
+            LogEntries.RemoveAt(0);
+        }
+    }
+
+    public void ResetLogEntries(IEnumerable<AppLogEntry> entries)
+    {
+        LogEntries.Clear();
+        foreach (var entry in entries.OrderBy(x => x.Timestamp))
+        {
+            AppendLogEntry(entry);
+        }
+    }
+
+    public void PresentPerformanceSnapshot(PerformanceSnapshot snapshot)
+    {
+        _lastPerformanceSnapshot = snapshot;
+        PerformanceStatusText =
+            $"{L("Performance")}: total {snapshot.TotalMs:N0} ms | analysis {snapshot.AnalysisMs:N0} ms | metrics {snapshot.MetricsMs:N0} ms | symbols {snapshot.SymbolIndexMs:N0} ms | cache {snapshot.CacheHitRate:P0} | mem {snapshot.MemoryUsageMb:N1} MB";
+    }
+
+    public void PresentDependencyPathResult(DependencyPathResult result)
+    {
+        ClearDependencyPathPresentation();
+        DependencyPathSummaryText = result.Summary;
+
+        if (!result.Found)
+        {
+            Graph.Touch();
+            return;
+        }
+
+        var nodeLookup = Graph.Nodes.ToDictionary(node => node.Id, StringComparer.OrdinalIgnoreCase);
+        var edgeLookup = new HashSet<string>(result.EdgeKeys, StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < result.NodeIds.Count; i++)
+        {
+            var nodeId = result.NodeIds[i];
+            if (nodeLookup.TryGetValue(nodeId, out var node))
+            {
+                node.Metadata["IsDependencyPathHit"] = "true";
+                DependencyPathSteps.Add($"{i + 1}. {node.Name} ({node.Type})");
+            }
+            else
+            {
+                DependencyPathSteps.Add($"{i + 1}. {nodeId}");
+            }
+        }
+
+        foreach (var edge in Graph.Edges)
+        {
+            if (edgeLookup.Contains($"{edge.FromNodeId}->{edge.ToNodeId}"))
+            {
+                edge.Metadata["IsDependencyPathHit"] = "true";
+            }
+        }
+
+        Graph.Touch();
+    }
+
+    public void ClearDependencyPathPresentation()
+    {
+        foreach (var node in Graph.Nodes)
+        {
+            node.Metadata.Remove("IsDependencyPathHit");
+        }
+
+        foreach (var edge in Graph.Edges)
+        {
+            edge.Metadata.Remove("IsDependencyPathHit");
+        }
+
+        DependencyPathSteps.Clear();
+        DependencyPathSummaryText = string.Empty;
     }
 
     private bool CanDrillIntoFolder(ArchitectureNode node)
@@ -725,6 +895,80 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void ApplyDiagnosticsFilters()
+    {
+        var filtered = SelectedDiagnosticsSeverityFilter == "All"
+            ? _allDiagnostics
+            : _allDiagnostics.Where(diagnostic =>
+                string.Equals(diagnostic.Severity.ToString(), SelectedDiagnosticsSeverityFilter, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        FilteredDiagnostics.Clear();
+        foreach (var diagnostic in filtered)
+        {
+            FilteredDiagnostics.Add(diagnostic);
+        }
+    }
+
+    private static void UpdateRecentSearchHistory(ObservableCollection<string> collection, string value)
+    {
+        var normalized = value?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return;
+        }
+
+        if (collection.Count > 0 &&
+            normalized.StartsWith(collection[0], StringComparison.OrdinalIgnoreCase))
+        {
+            collection[0] = normalized;
+        }
+        else
+        {
+            var existingIndex = collection
+                .Select((item, index) => new { item, index })
+                .FirstOrDefault(x => string.Equals(x.item, normalized, StringComparison.OrdinalIgnoreCase))
+                ?.index;
+
+            if (existingIndex.HasValue)
+            {
+                collection.RemoveAt(existingIndex.Value);
+            }
+
+            collection.Insert(0, normalized);
+        }
+
+        while (collection.Count > 10)
+        {
+            collection.RemoveAt(collection.Count - 1);
+        }
+    }
+
+    private static void ReplaceCollection<T>(ObservableCollection<T> collection, IEnumerable<T>? values)
+    {
+        collection.Clear();
+        if (values is null)
+        {
+            return;
+        }
+
+        foreach (var value in values)
+        {
+            collection.Add(value);
+        }
+    }
+
+    private static string ResolveOption(string? value, IReadOnlyList<string> available, string fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(value) &&
+            available.Contains(value, StringComparer.OrdinalIgnoreCase))
+        {
+            return available.First(x => string.Equals(x, value, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return fallback;
+    }
+
     private bool MatchesMetricsFilter(ArchitectureNode node)
     {
         return SelectedMetricsFilter switch
@@ -790,23 +1034,33 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void BuildActiveGraph()
     {
+        ClearDependencyPathPresentation();
         Graph.Nodes.Clear();
         Graph.Edges.Clear();
+        _activeGraph = null;
 
         if (!_graphs.TryGetValue(SelectedGraphType, out var graph))
         {
             return;
         }
 
-        foreach (var node in graph.Nodes)
+        var sourceGraph = SelectedGroupingMode == GraphGroupingMode.None
+            ? graph
+            : _groupingService.Group(graph, SelectedGroupingMode, _allProjects);
+        ApplyStoredGraphLayout(sourceGraph, SelectedGraphType, SelectedGroupingMode);
+        _activeGraph = sourceGraph;
+
+        foreach (var node in sourceGraph.Nodes)
         {
             Graph.Nodes.Add(node);
         }
 
-        foreach (var edge in graph.Edges)
+        foreach (var edge in sourceGraph.Edges)
         {
             Graph.Edges.Add(edge);
         }
+
+        Graph.SelectedNode = null;
     }
 
     private void UpdateGraphStatus()
@@ -852,6 +1106,77 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void CaptureGraphLayout(GraphType graphType, GraphGroupingMode groupingMode)
+    {
+        if (Graph.Nodes.Count == 0)
+        {
+            return;
+        }
+
+        _persistedGraphLayouts[BuildGraphLayoutKey(graphType, groupingMode)] = Graph.Nodes
+            .ToDictionary(
+                node => node.Id,
+                node => new NodeLayoutState
+                {
+                    X = node.X,
+                    Y = node.Y
+                },
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ApplyStoredGraphLayout(ArchitectureGraph graph, GraphType graphType, GraphGroupingMode groupingMode)
+    {
+        if (!_persistedGraphLayouts.TryGetValue(BuildGraphLayoutKey(graphType, groupingMode), out var layouts))
+        {
+            return;
+        }
+
+        foreach (var node in graph.Nodes)
+        {
+            if (layouts.TryGetValue(node.Id, out var layout))
+            {
+                node.X = layout.X;
+                node.Y = layout.Y;
+            }
+        }
+    }
+
+    private void CopyGraphLayoutsFromSession(Dictionary<string, Dictionary<string, NodeLayoutState>> graphLayouts)
+    {
+        _persistedGraphLayouts.Clear();
+        foreach (var graphLayout in graphLayouts)
+        {
+            _persistedGraphLayouts[graphLayout.Key] = graphLayout.Value.ToDictionary(
+                pair => pair.Key,
+                pair => new NodeLayoutState
+                {
+                    X = pair.Value.X,
+                    Y = pair.Value.Y
+                },
+                StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private Dictionary<string, Dictionary<string, NodeLayoutState>> CloneGraphLayouts()
+    {
+        return _persistedGraphLayouts.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.ToDictionary(
+                inner => inner.Key,
+                inner => new NodeLayoutState
+                {
+                    X = inner.Value.X,
+                    Y = inner.Value.Y
+                },
+                StringComparer.OrdinalIgnoreCase),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string BuildGraphLayoutKey(GraphType graphType, GraphGroupingMode groupingMode)
+    {
+        return $"{graphType}|{groupingMode}";
+    }
+
     private void ApplyMetricsToNodeMetadata(MetricsSummary summary)
     {
         var fileLookup = summary.Files.ToDictionary(x => x.FilePath, StringComparer.OrdinalIgnoreCase);
@@ -859,7 +1184,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         var namespaceLookup = summary.Namespaces.ToDictionary(x => x.Namespace, StringComparer.OrdinalIgnoreCase);
         var dependencyDepth = summary.Dependencies.ToDictionary(x => x.Scope, x => x.DependencyDepth, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var node in Graph.Nodes)
+        var allNodes = _graphs.Values
+            .SelectMany(graph => graph.Nodes)
+            .DistinctBy(node => node.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var node in allNodes)
         {
             switch (node.Type)
             {
@@ -1034,6 +1364,23 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(BottomPanelDiagnosticsTabText));
         OnPropertyChanged(nameof(SymbolExplorerReferencesTabText));
         OnPropertyChanged(nameof(SymbolExplorerJumpOpenText));
+        OnPropertyChanged(nameof(GroupByText));
+        OnPropertyChanged(nameof(FitToScreenText));
+        OnPropertyChanged(nameof(ZoomToSelectionText));
+        OnPropertyChanged(nameof(DependencyPathTabText));
+        OnPropertyChanged(nameof(DependencyPathSourceTextLabel));
+        OnPropertyChanged(nameof(DependencyPathTargetTextLabel));
+        OnPropertyChanged(nameof(DependencyPathShortestText));
+        OnPropertyChanged(nameof(DependencyPathCycleText));
+        OnPropertyChanged(nameof(DiagnosticsSeverityFilterText));
+        OnPropertyChanged(nameof(ExportDiagnosticsText));
+        OnPropertyChanged(nameof(RecentSearchesText));
+        OnPropertyChanged(nameof(LogsTabText));
+        OnPropertyChanged(nameof(PerformanceText));
+        OnPropertyChanged(nameof(RestoreLastSessionText));
+        OnPropertyChanged(nameof(AutoSaveSessionText));
+        OnPropertyChanged(nameof(ThemeText));
+        OnPropertyChanged(nameof(GraphLayoutText));
         OnPropertyChanged(nameof(MetricsTotalLoc));
         OnPropertyChanged(nameof(MetricsTotalFiles));
         OnPropertyChanged(nameof(MetricsLargestFile));
@@ -1042,6 +1389,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(MetricsLayerViolations));
         UpdateGraphStatus();
         UpdateTopStatus();
+        if (_lastPerformanceSnapshot is not null)
+        {
+            PresentPerformanceSnapshot(_lastPerformanceSnapshot);
+        }
     }
 
     private bool MatchesDrillFilter(ArchitectureNode node)

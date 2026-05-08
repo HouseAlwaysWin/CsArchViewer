@@ -28,6 +28,30 @@
                     IsChecked="{Binding ShowLineCountOnNodes, Mode=TwoWay}"
                     Foreground="#E2E8F0" />
 
+          <TextBlock Text="{Binding ThemeText}"
+                     FontWeight="SemiBold"
+                     Foreground="#CBD5E1"
+                     Margin="0,8,0,0" />
+          <ComboBox Width="220"
+                    ItemsSource="{Binding AvailableThemeOptions}"
+                    SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+
+          <TextBlock Text="{Binding GraphLayoutText}"
+                     FontWeight="SemiBold"
+                     Foreground="#CBD5E1"
+                     Margin="0,8,0,0" />
+          <ComboBox Width="220"
+                    ItemsSource="{Binding AvailableGraphLayoutOptions}"
+                    SelectedItem="{Binding SelectedGraphLayout, Mode=TwoWay}" />
+
+          <TextBlock Text="{Binding OverlayModeText}"
+                     FontWeight="SemiBold"
+                     Foreground="#CBD5E1"
+                     Margin="0,8,0,0" />
+          <ComboBox Width="220"
+                    ItemsSource="{Binding AvailableOverlayModes}"
+                    SelectedItem="{Binding SelectedOverlayMode, Mode=TwoWay}" />
+
           <TextBlock Text="{Binding LanguageText}"
                      FontWeight="SemiBold"
                      Foreground="#CBD5E1"
@@ -35,6 +59,14 @@
           <ComboBox Width="200"
                     ItemsSource="{Binding AvailableLanguages}"
                     SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+
+          <CheckBox Content="{Binding RestoreLastSessionText}"
+                    IsChecked="{Binding RestoreLastSession, Mode=TwoWay}"
+                    Foreground="#E2E8F0"
+                    Margin="0,8,0,0" />
+          <CheckBox Content="{Binding AutoSaveSessionText}"
+                    IsChecked="{Binding AutoSaveSession, Mode=TwoWay}"
+                    Foreground="#E2E8F0" />
         </StackPanel>
       </Border>
     </StackPanel>

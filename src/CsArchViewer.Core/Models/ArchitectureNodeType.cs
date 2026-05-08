@@ -4,6 +4,7 @@ public enum ArchitectureNodeType
 {
     Solution,
     Project,
+    Group,
     Folder,
     File,
     Package,

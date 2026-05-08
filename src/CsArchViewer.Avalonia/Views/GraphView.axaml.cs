@@ -12,4 +12,19 @@ public partial class GraphView : UserControl
         InitializeComponent();
         Canvas.NodeDoubleClicked += node => NodeDoubleClicked?.Invoke(node);
     }
+
+    public void FitToScreen()
+    {
+        Canvas.FitToScreen();
+    }
+
+    public void ZoomToNode(ArchitectureNode? node)
+    {
+        if (node is null)
+        {
+            return;
+        }
+
+        Canvas.ZoomToNode(node);
+    }
 }

@@ -83,7 +83,7 @@ public sealed class GraphGroupingService
                 {
                     FromNodeId = groupMap[fromKey].Id,
                     ToNodeId = groupMap[toKey].Id,
-                    Label = edge.Label,
+                    Label = "Aggregated",
                     Type = edge.Type,
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
@@ -95,7 +95,6 @@ public sealed class GraphGroupingService
 
             var count = int.TryParse(aggregated.Metadata["AggregatedCount"], out var parsed) ? parsed : 0;
             aggregated.Metadata["AggregatedCount"] = (count + 1).ToString();
-            aggregated.Label = $"Aggregated ({aggregated.Metadata["AggregatedCount"]})";
         }
 
         grouped.Edges.AddRange(edgeMap.Values.OrderBy(x => x.FromNodeId, StringComparer.OrdinalIgnoreCase)

@@ -96,7 +96,24 @@ public sealed class LocalizationService
             ["SymbolExplorerReferencesTab"] = "符號參考結果",
             ["SymbolExplorerJumpOpen"] = "開啟選取位置",
             ["SymbolExplorerNoIndex"] = "符號索引尚未就緒；請先完成分析。",
-            ["SymbolExplorerNoSelection"] = "請先選取符號。"
+            ["SymbolExplorerNoSelection"] = "請先選取符號。",
+            ["GroupBy"] = "分組方式",
+            ["FitToScreen"] = "適應畫面",
+            ["ZoomToSelection"] = "縮放至選取",
+            ["DependencyPathTab"] = "相依路徑",
+            ["DependencyPathSource"] = "起點",
+            ["DependencyPathTarget"] = "目標",
+            ["DependencyPathShortest"] = "最短路徑",
+            ["DependencyPathCycle"] = "尋找循環",
+            ["DiagnosticsSeverityFilter"] = "診斷層級",
+            ["ExportDiagnostics"] = "匯出診斷",
+            ["RecentSearches"] = "最近搜尋",
+            ["LogsTab"] = "記錄",
+            ["Performance"] = "效能",
+            ["RestoreLastSession"] = "啟動時還原上次工作區",
+            ["AutoSaveSession"] = "自動儲存工作區",
+            ["Theme"] = "主題",
+            ["GraphLayout"] = "圖表版面"
         },
         ["en-US"] = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -190,7 +207,24 @@ public sealed class LocalizationService
             ["SymbolExplorerReferencesTab"] = "Symbol References",
             ["SymbolExplorerJumpOpen"] = "Open Selected",
             ["SymbolExplorerNoIndex"] = "Symbol index not ready; finish analysis first.",
-            ["SymbolExplorerNoSelection"] = "Select a symbol first."
+            ["SymbolExplorerNoSelection"] = "Select a symbol first.",
+            ["GroupBy"] = "Group By",
+            ["FitToScreen"] = "Fit To Screen",
+            ["ZoomToSelection"] = "Zoom To Selection",
+            ["DependencyPathTab"] = "Dependency Path",
+            ["DependencyPathSource"] = "Source",
+            ["DependencyPathTarget"] = "Target",
+            ["DependencyPathShortest"] = "Shortest Path",
+            ["DependencyPathCycle"] = "Find Cycle",
+            ["DiagnosticsSeverityFilter"] = "Diagnostics Severity",
+            ["ExportDiagnostics"] = "Export Diagnostics",
+            ["RecentSearches"] = "Recent Searches",
+            ["LogsTab"] = "Logs",
+            ["Performance"] = "Performance",
+            ["RestoreLastSession"] = "Restore last workspace on startup",
+            ["AutoSaveSession"] = "Auto-save workspace",
+            ["Theme"] = "Theme",
+            ["GraphLayout"] = "Graph Layout"
         }
     };
 

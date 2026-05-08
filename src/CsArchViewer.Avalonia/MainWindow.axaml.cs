@@ -49,8 +49,14 @@ public partial class MainWindow : Window
     private readonly TypeMethodAnalyzer _typeMethodAnalyzer = new();
     private readonly MethodMetadataAnalyzer _methodMetadataAnalyzer = new();
     private readonly SymbolNavigationService _symbolNavigationService = new();
+    private readonly WorkspaceStatePersistenceService _workspaceStatePersistenceService = new();
+    private readonly AppLogService _appLogService = new();
+    private readonly PerformanceMonitorService _performanceMonitorService = new();
+    private readonly DependencyPathExplorerService _dependencyPathExplorerService = new();
 
     private MetricsSummary? _latestMetricsSummary;
+    private CancellationTokenSource? _stateSaveCts;
+    private bool _isRestoringWorkspaceState;
 
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
@@ -61,9 +67,63 @@ public partial class MainWindow : Window
         _analyzer = new DotNetProjectAnalyzer(_roslynSolutionLoader);
         _symbolIndexBuilder = new SymbolIndexBuilder(_roslynSolutionLoader);
         _incrementalEngine = new IncrementalAnalysisEngine(_analyzer);
+        AttachV65Services();
         AttachGraphSelectionBridge();
         AttachAnalysisEvents();
         UpdateExportButtonState();
+        Opened += MainWindow_OnOpened;
+    }
+
+    private void AttachV65Services()
+    {
+        _appLogService.EntryAdded += entry =>
+            Dispatcher.UIThread.Post(() => ViewModel.AppendLogEntry(entry));
+        _performanceMonitorService.SnapshotUpdated += snapshot =>
+            Dispatcher.UIThread.Post(() => ViewModel.PresentPerformanceSnapshot(snapshot));
+        ViewModel.ResetLogEntries(_appLogService.Entries);
+        ViewModel.PropertyChanged += (_, args) =>
+        {
+            if (_isRestoringWorkspaceState || string.IsNullOrWhiteSpace(args.PropertyName))
+            {
+                return;
+            }
+
+            if (args.PropertyName is nameof(MainWindowViewModel.SelectedGraphType) or nameof(MainWindowViewModel.SelectedGroupingMode))
+            {
+                _appLogService.Info("Graph", $"Graph updated: {ViewModel.SelectedGraphType} | Grouping: {ViewModel.SelectedGroupingMode}");
+                UpdateExportButtonState();
+            }
+
+            if (ShouldPersistProperty(args.PropertyName))
+            {
+                SchedulePersistWorkspaceState();
+            }
+        };
+    }
+
+    private async void MainWindow_OnOpened(object? sender, EventArgs e)
+    {
+        Opened -= MainWindow_OnOpened;
+        await RestoreWorkspaceStateAsync().ConfigureAwait(true);
+    }
+
+    private static bool ShouldPersistProperty(string propertyName)
+    {
+        return propertyName is nameof(MainWindowViewModel.CurrentRootPath)
+            or nameof(MainWindowViewModel.SearchText)
+            or nameof(MainWindowViewModel.SymbolExplorerSearchQuery)
+            or nameof(MainWindowViewModel.SelectedGraphType)
+            or nameof(MainWindowViewModel.SelectedGroupingMode)
+            or nameof(MainWindowViewModel.SelectedTypeFilter)
+            or nameof(MainWindowViewModel.SelectedMetricsFilter)
+            or nameof(MainWindowViewModel.SelectedOverlayMode)
+            or nameof(MainWindowViewModel.SelectedDiagnosticsSeverityFilter)
+            or nameof(MainWindowViewModel.SelectedLanguage)
+            or nameof(MainWindowViewModel.SelectedTheme)
+            or nameof(MainWindowViewModel.SelectedGraphLayout)
+            or nameof(MainWindowViewModel.ShowLineCountOnNodes)
+            or nameof(MainWindowViewModel.RestoreLastSession)
+            or nameof(MainWindowViewModel.AutoSaveSession);
     }
 
     private void AttachGraphSelectionBridge()
@@ -178,9 +238,78 @@ public partial class MainWindow : Window
     private async Task LoadAsync(string rootPath)
     {
         ViewModel.CurrentRootPath = rootPath;
+        _appLogService.Info("Workspace", $"Loading workspace: {rootPath}");
         _fileChangeTracker.Start(rootPath);
         QueueAnalysis(rootPath, null, AnalysisPriority.High, ViewModel.L("RunningFullAnalysis"));
+        SchedulePersistWorkspaceState();
         await Task.CompletedTask;
+    }
+
+    private async Task RestoreWorkspaceStateAsync()
+    {
+        _isRestoringWorkspaceState = true;
+        try
+        {
+            var state = await _workspaceStatePersistenceService.LoadAsync().ConfigureAwait(true);
+            ViewModel.ApplyWorkspaceState(state);
+            _appLogService.Info("Persistence", "Workspace state restored.");
+
+            var rootPath = state.Session.RootPath;
+            if (ViewModel.RestoreLastSession &&
+                !string.IsNullOrWhiteSpace(rootPath) &&
+                Directory.Exists(rootPath))
+            {
+                await LoadAsync(rootPath).ConfigureAwait(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _appLogService.Warning("Persistence", $"Workspace state restore failed: {ex.Message}");
+        }
+        finally
+        {
+            _isRestoringWorkspaceState = false;
+        }
+    }
+
+    private void SchedulePersistWorkspaceState()
+    {
+        if (_isRestoringWorkspaceState || !ViewModel.AutoSaveSession)
+        {
+            return;
+        }
+
+        _stateSaveCts?.Cancel();
+        _stateSaveCts?.Dispose();
+        _stateSaveCts = new CancellationTokenSource();
+        _ = PersistWorkspaceStateDebouncedAsync(_stateSaveCts.Token);
+    }
+
+    private async Task PersistWorkspaceStateDebouncedAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(750, cancellationToken).ConfigureAwait(true);
+            await PersistWorkspaceStateAsync(cancellationToken).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _appLogService.Warning("Persistence", $"Workspace state save failed: {ex.Message}");
+        }
+    }
+
+    private async Task PersistWorkspaceStateAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isRestoringWorkspaceState)
+        {
+            return;
+        }
+
+        var state = ViewModel.ExportWorkspaceState();
+        await _workspaceStatePersistenceService.SaveAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
     private async void ExportMermaid_OnClick(object? sender, RoutedEventArgs e)
@@ -398,6 +527,151 @@ public partial class MainWindow : Window
         }
     }
 
+    private void FitToScreen_OnClick(object? sender, RoutedEventArgs e)
+    {
+        GraphViewControl.FitToScreen();
+        _appLogService.Info("Graph", "Fit-to-screen applied.");
+    }
+
+    private void ZoomToSelection_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel.Graph.SelectedNode is not { } selectedNode)
+        {
+            return;
+        }
+
+        GraphViewControl.ZoomToNode(selectedNode);
+        _appLogService.Info("Graph", $"Zoomed to selection: {selectedNode.Name}");
+    }
+
+    private void DependencyPathShortest_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var graph = ViewModel.GetCurrentGraph();
+        var source = ViewModel.Graph.SelectedNode;
+        if (graph is null || source is null)
+        {
+            ViewModel.Status = "Select a source node first.";
+            return;
+        }
+
+        var target = ResolveNodeByQuery(graph, ViewModel.DependencyPathTargetQuery);
+        if (target is null)
+        {
+            ViewModel.Status = $"Target node not found: {ViewModel.DependencyPathTargetQuery}";
+            return;
+        }
+
+        var result = _dependencyPathExplorerService.FindShortestPath(graph, source.Id, target.Id);
+        ViewModel.PresentDependencyPathResult(result);
+        ViewModel.Status = result.Summary;
+        _appLogService.Info("DependencyPath", $"{source.Name} -> {target.Name}: {result.Summary}");
+        SchedulePersistWorkspaceState();
+    }
+
+    private void DependencyPathCycle_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var graph = ViewModel.GetCurrentGraph();
+        var source = ViewModel.Graph.SelectedNode;
+        if (graph is null || source is null)
+        {
+            ViewModel.Status = "Select a source node first.";
+            return;
+        }
+
+        var result = _dependencyPathExplorerService.FindCycle(graph, source.Id);
+        ViewModel.PresentDependencyPathResult(result);
+        ViewModel.Status = result.Summary;
+        _appLogService.Info("DependencyPath", $"{source.Name}: {result.Summary}");
+        SchedulePersistWorkspaceState();
+    }
+
+    private async void ExportDiagnostics_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (StorageProvider is null)
+        {
+            ViewModel.Status = "Diagnostics export unavailable: storage provider unavailable.";
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export diagnostics",
+            SuggestedFileName = $"csarchviewer-diagnostics-{DateTime.Now:yyyyMMddHHmmss}.csv",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("CSV")
+                {
+                    Patterns = ["*.csv"]
+                }
+            ]
+        });
+
+        if (file is null)
+        {
+            ViewModel.Status = ViewModel.L("ExportCanceled");
+            return;
+        }
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream);
+            await writer.WriteAsync(BuildDiagnosticsCsv()).ConfigureAwait(false);
+            ViewModel.Status = $"Exported diagnostics: {file.Name}";
+            _appLogService.Info("Diagnostics", $"Diagnostics exported to {file.Name}");
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Status = string.Format(ViewModel.L("ExportFailedTemplate"), ex.Message);
+            _appLogService.Error("Diagnostics", ex.Message);
+        }
+    }
+
+    private string BuildDiagnosticsCsv()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Severity,Type,Source,Target,Message");
+        foreach (var diagnostic in ViewModel.FilteredDiagnostics)
+        {
+            sb.Append(EscapeCsv(diagnostic.Severity.ToString()));
+            sb.Append(',');
+            sb.Append(EscapeCsv(diagnostic.Type));
+            sb.Append(',');
+            sb.Append(EscapeCsv(diagnostic.Source));
+            sb.Append(',');
+            sb.Append(EscapeCsv(diagnostic.Target));
+            sb.Append(',');
+            sb.Append(EscapeCsv(diagnostic.Message));
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        var normalized = value ?? string.Empty;
+        return $"\"{normalized.Replace("\"", "\"\"")}\"";
+    }
+
+    private static ArchitectureNode? ResolveNodeByQuery(ArchitectureGraph graph, string? query)
+    {
+        var normalized = query?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        return graph.Nodes.FirstOrDefault(node =>
+                   string.Equals(node.Id, normalized, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(node.Name, normalized, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(node.FullPath, normalized, StringComparison.OrdinalIgnoreCase))
+               ?? graph.Nodes.FirstOrDefault(node =>
+                   node.Name.Contains(normalized, StringComparison.OrdinalIgnoreCase) ||
+                   node.FullPath.Contains(normalized, StringComparison.OrdinalIgnoreCase) ||
+                   node.Id.Contains(normalized, StringComparison.OrdinalIgnoreCase));
+    }
+
     private void QueueAnalysis(
         string rootPath,
         IReadOnlyCollection<string>? changedFiles,
@@ -407,12 +681,19 @@ public partial class MainWindow : Window
         ViewModel.IsAnalyzing = true;
         ViewModel.Status = status;
         ViewModel.AnalysisStatus = status;
+        _appLogService.Info("Analysis", status);
         _analysisScheduler.Enqueue(async token =>
         {
             try
             {
+                var totalStopwatch = Stopwatch.StartNew();
+                var analysisStopwatch = Stopwatch.StartNew();
                 var update = await _incrementalEngine.AnalyzeAsync(rootPath, changedFiles, token);
+                analysisStopwatch.Stop();
+
+                var metricsStopwatch = Stopwatch.StartNew();
                 var metrics = await _codeMetricsAnalyzer.AnalyzeAsync(update.Result, changedFiles, token);
+                metricsStopwatch.Stop();
                 _latestMetricsSummary = metrics;
 
                 var diagnostics = _diagnosticsEngine.Analyze(update.Result.Graphs).ToList();
@@ -428,11 +709,14 @@ public partial class MainWindow : Window
                     Message = warning.Message
                 }));
                 _searchIndex.BuildIndex(update.Result);
+                _appLogService.Trace("Graph", $"Search index rebuilt for {update.Result.Graphs.Count} graphs.");
 
+                var symbolStopwatch = Stopwatch.StartNew();
                 try
                 {
                     if (changedFiles is null || changedFiles.Count == 0)
                     {
+                        _appLogService.Trace("Roslyn", "Rebuilding symbol index from workspace.");
                         await _symbolIndexBuilder.RebuildAsync(rootPath, token).ConfigureAwait(false);
                     }
                     else
@@ -442,29 +726,54 @@ public partial class MainWindow : Window
                             .ToList();
                         if (csharpChanges.Count > 0)
                         {
+                            _appLogService.Trace("Roslyn", $"Updating symbol index for {csharpChanges.Count} changed C# files.");
                             await _symbolIndexBuilder.UpdateFilesAsync(csharpChanges, token).ConfigureAwait(false);
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Symbol index is best-effort; analysis graphs remain usable.
+                    _appLogService.Warning("Roslyn", $"Symbol index refresh failed: {ex.Message}");
                 }
+                finally
+                {
+                    symbolStopwatch.Stop();
+                }
+
+                totalStopwatch.Stop();
+                var snapshot = new PerformanceSnapshot
+                {
+                    AnalysisMs = analysisStopwatch.Elapsed.TotalMilliseconds,
+                    MetricsMs = metricsStopwatch.Elapsed.TotalMilliseconds,
+                    SymbolIndexMs = symbolStopwatch.Elapsed.TotalMilliseconds,
+                    TotalMs = totalStopwatch.Elapsed.TotalMilliseconds,
+                    CacheHitRate = _incrementalEngine.CacheHitRate,
+                    SymbolIndexSize = _symbolIndexBuilder.Symbols.Count,
+                    MemoryUsageMb = GC.GetTotalMemory(false) / (1024d * 1024d),
+                    NodeCount = update.Result.Graphs.Values.Sum(graph => graph.Nodes.Count),
+                    EdgeCount = update.Result.Graphs.Values.Sum(graph => graph.Edges.Count)
+                };
 
                 Dispatcher.UIThread.Post(() =>
                 {
                     ViewModel.SetAnalysisResult(update.Result);
                     ViewModel.SetMetricsSummary(metrics);
                     ViewModel.SetDiagnostics(diagnostics);
+                    _performanceMonitorService.Update(snapshot);
                     UpdateExportButtonState();
                     ViewModel.IsAnalyzing = false;
                     ViewModel.AnalysisStatus = update.IsIncremental
                         ? string.Format(ViewModel.L("IncrementalUpdatedTemplate"), string.Join(", ", update.ImpactedGraphs))
                         : ViewModel.L("FullAnalysisCompleted");
+                    _appLogService.Info(
+                        "Analysis",
+                        $"{(update.IsIncremental ? "Incremental" : "Full")} analysis completed in {snapshot.TotalMs:N0} ms. Cache hit rate: {snapshot.CacheHitRate:P0}.");
+                    SchedulePersistWorkspaceState();
                 });
             }
             catch (Exception ex)
             {
+                _appLogService.Error("Analysis", ex.Message);
                 Dispatcher.UIThread.Post(() =>
                 {
                     ViewModel.IsAnalyzing = false;
@@ -1071,6 +1380,17 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _stateSaveCts?.Cancel();
+        _stateSaveCts?.Dispose();
+        try
+        {
+            PersistWorkspaceStateAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Ignore persistence failures during shutdown.
+        }
+
         _fileChangeTracker.Dispose();
         _analysisScheduler.Dispose();
         _symbolIndexBuilder.Dispose();
