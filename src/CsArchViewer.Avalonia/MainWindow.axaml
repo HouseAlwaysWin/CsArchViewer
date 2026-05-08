@@ -47,6 +47,7 @@
                       <ComboBoxItem Content="Mermaid" />
                       <ComboBoxItem Content="JSON" />
                       <ComboBoxItem Content="DOT" />
+                      <ComboBoxItem Content="AI Prompt" />
                       <ComboBoxItem Content="Metrics JSON" />
                       <ComboBoxItem Content="Metrics CSV" />
                       <ComboBoxItem Content="Metrics Markdown" />

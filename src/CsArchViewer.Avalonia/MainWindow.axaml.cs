@@ -32,6 +32,7 @@ public partial class MainWindow : Window
     private readonly MermaidExporter _mermaidExporter = new();
     private readonly JsonExporter _jsonExporter = new();
     private readonly GraphvizExporter _graphvizExporter = new();
+    private readonly AiPromptExporter _aiPromptExporter = new();
     private readonly MetricsJsonExporter _metricsJsonExporter = new();
     private readonly MetricsCsvExporter _metricsCsvExporter = new();
     private readonly MetricsMarkdownExporter _metricsMarkdownExporter = new();
@@ -165,6 +166,9 @@ public partial class MainWindow : Window
             case "DOT":
                 await ExportAsync("dot", ".dot", graph => _graphvizExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
                 break;
+            case "AI Prompt":
+                await ExportAsync("ai prompt", ".prompt.md", graph => _aiPromptExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
+                break;
             case "Metrics JSON":
                 await ExportMetricsAsync("metrics json", ".metrics.json", summary => _metricsJsonExporter.Export(summary));
                 break;
@@ -182,65 +186,95 @@ public partial class MainWindow : Window
 
     private async Task ExportAsync(string formatName, string extension, Func<CsArchViewer.Core.Models.ArchitectureGraph, string> writer)
     {
-        var graph = ViewModel.GetCurrentGraph();
-        if (graph is null || StorageProvider is null)
+        try
         {
-            return;
+            var graph = ViewModel.GetCurrentGraph();
+            if (graph is null)
+            {
+                ViewModel.Status = ViewModel.L("ExportUnavailableGraph");
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                ViewModel.Status = string.Format(ViewModel.L("ExportFailedTemplate"), "storage provider unavailable");
+                return;
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
+                SuggestedFileName = $"csarchviewer-{ViewModel.SelectedGraphType}{extension}",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType(formatName.ToUpperInvariant())
+                    {
+                        Patterns = [$"*{extension}"]
+                    }
+                ]
+            });
+
+            if (file is null)
+            {
+                ViewModel.Status = ViewModel.L("ExportCanceled");
+                return;
+            }
+
+            await using var stream = await file.OpenWriteAsync();
+            using var writerStream = new StreamWriter(stream);
+            await writerStream.WriteAsync(writer(graph));
+            ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
         }
-
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        catch (Exception ex)
         {
-            Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
-            SuggestedFileName = $"csarchviewer-{ViewModel.SelectedGraphType}{extension}",
-            FileTypeChoices =
-            [
-                new FilePickerFileType(formatName.ToUpperInvariant())
-                {
-                    Patterns = [$"*{extension}"]
-                }
-            ]
-        });
-
-        if (file is null)
-        {
-            return;
+            ViewModel.Status = string.Format(ViewModel.L("ExportFailedTemplate"), ex.Message);
         }
-
-        await using var stream = await file.OpenWriteAsync();
-        using var writerStream = new StreamWriter(stream);
-        await writerStream.WriteAsync(writer(graph));
-        ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
     }
 
     private async Task ExportMetricsAsync(string formatName, string extension, Func<MetricsSummary, string> writer)
     {
-        if (_latestMetricsSummary is null || StorageProvider is null)
+        try
         {
-            return;
+            if (_latestMetricsSummary is null)
+            {
+                ViewModel.Status = ViewModel.L("ExportUnavailableMetrics");
+                return;
+            }
+
+            if (StorageProvider is null)
+            {
+                ViewModel.Status = string.Format(ViewModel.L("ExportFailedTemplate"), "storage provider unavailable");
+                return;
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
+                SuggestedFileName = $"csarchviewer-metrics-{DateTime.Now:yyyyMMddHHmmss}{extension}",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType(formatName.ToUpperInvariant())
+                    {
+                        Patterns = [$"*{extension}"]
+                    }
+                ]
+            });
+
+            if (file is null)
+            {
+                ViewModel.Status = ViewModel.L("ExportCanceled");
+                return;
+            }
+
+            await using var stream = await file.OpenWriteAsync();
+            using var writerStream = new StreamWriter(stream);
+            await writerStream.WriteAsync(writer(_latestMetricsSummary));
+            ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
         }
-
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        catch (Exception ex)
         {
-            Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
-            SuggestedFileName = $"csarchviewer-metrics-{DateTime.Now:yyyyMMddHHmmss}{extension}",
-            FileTypeChoices =
-            [
-                new FilePickerFileType(formatName.ToUpperInvariant())
-                {
-                    Patterns = [$"*{extension}"]
-                }
-            ]
-        });
-
-        if (file is null)
-        {
-            return;
+            ViewModel.Status = string.Format(ViewModel.L("ExportFailedTemplate"), ex.Message);
         }
-
-        await using var stream = await file.OpenWriteAsync();
-        using var writerStream = new StreamWriter(stream);
-        await writerStream.WriteAsync(writer(_latestMetricsSummary));
-        ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
     }
 
     private void DiagnosticsSplitter_OnDoubleTapped(object? sender, TappedEventArgs e)
