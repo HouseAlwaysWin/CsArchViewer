@@ -12,7 +12,7 @@
         x:Class="CsArchViewer.Avalonia.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="CsArchViewer - .NET Architecture Viewer"
-        Icon="/Assets/Icons/logo2.png">
+        Icon="/Assets/Icons/logo-mark.png">
   <DockPanel>
     <TabControl Margin="0"
                 Padding="0"

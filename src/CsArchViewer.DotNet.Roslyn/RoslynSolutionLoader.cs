@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 
@@ -37,6 +38,7 @@ public sealed class RoslynSolutionLoader : IDisposable
             }
 
             _workspace?.Dispose();
+            ShutdownDotNetBuildServers();
             var workspace = MSBuildWorkspace.Create();
             _workspace = workspace;
             _loadedRootPath = normalizedRoot;
@@ -109,6 +111,7 @@ public sealed class RoslynSolutionLoader : IDisposable
         _workspace?.Dispose();
         _workspace = null;
         _loadedRootPath = null;
+        ShutdownDotNetBuildServers();
         _gate.Dispose();
     }
 
@@ -121,6 +124,27 @@ public sealed class RoslynSolutionLoader : IDisposable
         catch
         {
             return path;
+        }
+    }
+
+    private static void ShutdownDotNetBuildServers()
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "build-server shutdown --msbuild --vbcscompiler",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+
+            process?.WaitForExit(3000);
+        }
+        catch
+        {
+            // Best-effort cleanup. Some SDK layouts may not expose this command.
         }
     }
 }
