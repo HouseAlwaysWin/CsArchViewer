@@ -49,6 +49,7 @@ public partial class MainWindow : Window
         _incrementalEngine = new IncrementalAnalysisEngine(_analyzer);
         AttachGraphSelectionBridge();
         AttachAnalysisEvents();
+        UpdateExportButtonState();
     }
 
     private void AttachGraphSelectionBridge()
@@ -182,6 +183,38 @@ public partial class MainWindow : Window
                 await ExportAsync("mermaid", ".mmd", graph => _mermaidExporter.Export(graph, ViewModel.SelectedGraphType.ToString()));
                 break;
         }
+    }
+
+    private void ExportFormatCombo_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        UpdateExportButtonState();
+    }
+
+    private void UpdateExportButtonState()
+    {
+        ComboBox? combo;
+        Button? button;
+        try
+        {
+            combo = this.FindControl<ComboBox>("ExportFormatCombo");
+            button = this.FindControl<Button>("ExportActionButton");
+        }
+        catch (InvalidOperationException)
+        {
+            // SelectionChanged can fire while XAML name scope is still being constructed.
+            return;
+        }
+
+        if (button is null)
+        {
+            return;
+        }
+
+        var selected = (combo?.SelectedItem as ComboBoxItem)?.Content as string ?? "Mermaid";
+        var requiresMetrics = selected is "Metrics JSON" or "Metrics CSV" or "Metrics Markdown";
+        var hasGraph = ViewModel.GetCurrentGraph() is not null;
+        var hasMetrics = _latestMetricsSummary is not null;
+        button.IsEnabled = requiresMetrics ? hasMetrics : hasGraph;
     }
 
     private async Task ExportAsync(string formatName, string extension, Func<CsArchViewer.Core.Models.ArchitectureGraph, string> writer)
@@ -357,6 +390,7 @@ public partial class MainWindow : Window
                     ViewModel.SetAnalysisResult(update.Result);
                     ViewModel.SetMetricsSummary(metrics);
                     ViewModel.SetDiagnostics(diagnostics);
+                    UpdateExportButtonState();
                     ViewModel.IsAnalyzing = false;
                     ViewModel.AnalysisStatus = update.IsIncremental
                         ? string.Format(ViewModel.L("IncrementalUpdatedTemplate"), string.Join(", ", update.ImpactedGraphs))
@@ -370,6 +404,7 @@ public partial class MainWindow : Window
                     ViewModel.IsAnalyzing = false;
                     ViewModel.AnalysisStatus = string.Format(ViewModel.L("AnalysisFailedTemplate"), ex.Message);
                     ViewModel.Status = string.Format(ViewModel.L("AnalyzeFailedTemplate"), ex.Message);
+                    UpdateExportButtonState();
                 });
             }
         }, priority);
