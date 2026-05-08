@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Icons\logo2.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
@@ -24,6 +25,10 @@
     <ProjectReference Include="..\CsArchViewer.Diagnostics\CsArchViewer.Diagnostics.csproj" />
     <ProjectReference Include="..\CsArchViewer.Metrics\CsArchViewer.Metrics.csproj" />
     <ProjectReference Include="..\CsArchViewer.DotNet.SymbolExplorer\CsArchViewer.DotNet.SymbolExplorer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
   <ItemGroup>
