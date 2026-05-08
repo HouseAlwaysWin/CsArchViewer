@@ -18,7 +18,7 @@
                 Padding="0"
                 TabStripPlacement="Top"
                 Background="#0B1220">
-      <TabItem Header="{Binding WorkspaceTabText}" FontWeight="SemiBold" Padding="14,8">
+      <TabItem Header="{Binding WorkspaceTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <DockPanel>
           <Border DockPanel.Dock="Top"
                   Padding="10,8"
@@ -97,7 +97,7 @@
                     BorderBrush="#2E3748"
                     BorderThickness="0,0,1,0">
               <TabControl Margin="4">
-                <TabItem Header="{Binding NodesTitleText}" FontWeight="SemiBold">
+                <TabItem Header="{Binding NodesTitleText}" FontWeight="SemiBold" FontSize="14">
                   <DockPanel LastChildFill="True">
                     <ListBox Margin="6"
                              ItemsSource="{Binding ListedNodes}"
@@ -113,7 +113,7 @@
                     </ListBox>
                   </DockPanel>
                 </TabItem>
-                <TabItem Header="{Binding SymbolExplorerTabText}" FontWeight="SemiBold">
+                <TabItem Header="{Binding SymbolExplorerTabText}" FontWeight="SemiBold" FontSize="14">
                   <DockPanel LastChildFill="True">
                     <DockPanel DockPanel.Dock="Top"
                                Margin="8,8,8,4"
@@ -156,8 +156,15 @@
                 <Border Background="#0F172A"
                         BorderBrush="#1E293B"
                         BorderThickness="0,0,0,1"
-                        Padding="8">
-                  <WrapPanel Orientation="Horizontal">
+                        Padding="8,4">
+                  <Expander IsExpanded="False">
+                    <Expander.Header>
+                      <TextBlock Text="圖例"
+                                 Foreground="#CBD5E1"
+                                 FontWeight="SemiBold"
+                                 FontSize="13" />
+                    </Expander.Header>
+                    <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,16,6">
                       <Border Width="14" Height="14" Background="#1F2937" CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Library" />
@@ -229,7 +236,8 @@
                               CornerRadius="3" />
                       <TextBlock VerticalAlignment="Center" Foreground="#CBD5E1" Text="Search Hit" />
                     </StackPanel>
-                  </WrapPanel>
+                    </WrapPanel>
+                  </Expander>
                 </Border>
                 <views:GraphView x:Name="GraphViewControl"
                                  Grid.Row="1"
@@ -247,7 +255,7 @@
                     BorderBrush="#2E3748"
                     BorderThickness="1,0,0,0">
               <TabControl>
-                <TabItem Header="{Binding NodeDetailsTitleText}" FontWeight="SemiBold">
+                <TabItem Header="{Binding NodeDetailsTitleText}" FontWeight="SemiBold" FontSize="14">
                   <ScrollViewer>
                     <StackPanel Margin="10" Spacing="8">
                   <Expander Header="基本資訊"
@@ -472,7 +480,7 @@
                 </StackPanel>
                   </ScrollViewer>
                 </TabItem>
-                <TabItem Header="{Binding SymbolExplorerDetailsTabText}" FontWeight="SemiBold">
+                <TabItem Header="{Binding SymbolExplorerDetailsTabText}" FontWeight="SemiBold" FontSize="14">
                   <ScrollViewer>
                     <StackPanel Margin="10" Spacing="8">
                       <StackPanel Orientation="Horizontal" Spacing="8">
@@ -537,7 +545,7 @@
                   Padding="8"
                   Background="#0B1220">
             <TabControl>
-              <TabItem Header="{Binding BottomPanelDiagnosticsTabText}" FontWeight="SemiBold">
+              <TabItem Header="{Binding BottomPanelDiagnosticsTabText}" FontWeight="SemiBold" FontSize="13">
             <Grid ColumnDefinitions="2*,6,*" RowDefinitions="Auto,*">
               <DockPanel LastChildFill="False">
                 <Button x:Name="DiagnosticsToggleButton"
@@ -603,7 +611,7 @@
               </ListBox>
             </Grid>
               </TabItem>
-              <TabItem Header="{Binding SymbolExplorerReferencesTabText}" FontWeight="SemiBold">
+              <TabItem Header="{Binding SymbolExplorerReferencesTabText}" FontWeight="SemiBold" FontSize="13">
                 <DockPanel LastChildFill="True">
                   <StackPanel DockPanel.Dock="Top"
                               Orientation="Horizontal"
@@ -639,7 +647,7 @@
         </Grid>
         </DockPanel>
       </TabItem>
-      <TabItem Header="{Binding MetricsTabText}" FontWeight="SemiBold" Padding="14,8">
+      <TabItem Header="{Binding MetricsTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <ScrollViewer>
           <StackPanel Margin="20" Spacing="16">
             <TextBlock Text="{Binding MetricsTabText}" FontSize="22" FontWeight="SemiBold" />
@@ -689,7 +697,7 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
-      <TabItem Header="{Binding SettingsTabText}" FontWeight="SemiBold" Padding="14,8">
+      <TabItem Header="{Binding SettingsTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <views:SettingsView />
       </TabItem>
     </TabControl>
