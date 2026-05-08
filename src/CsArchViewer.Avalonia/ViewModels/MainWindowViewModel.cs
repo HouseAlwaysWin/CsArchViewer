@@ -6,6 +6,8 @@ namespace CsArchViewer.Avalonia.ViewModels;
 
 public sealed class MainWindowViewModel : ViewModelBase
 {
+    private readonly LocalizationService _localization = new();
+    public static readonly IReadOnlyList<string> LanguageOptions = ["繁體中文", "English"];
     public static readonly IReadOnlyList<string> TypeFilterOptions = ["All", "Library", "Exe"];
     public static readonly IReadOnlyList<GraphType> GraphTypeOptions =
     [
@@ -26,11 +28,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     private GraphType _selectedGraphType = GraphType.ProjectDependencies;
     private string? _drillProjectPath;
     private string? _drillFolderPath;
-    private string _status = "Select a folder to analyze.";
-    private string _analysisStatus = "Idle";
+    private string _status = string.Empty;
+    private string _analysisStatus = string.Empty;
     private bool _isAnalyzing;
     private int _backgroundTaskCount;
-    private string _topStatus = "Select a folder to analyze. | Idle | Tasks: 0";
+    private string _topStatus = string.Empty;
+    private string _selectedLanguage = "繁體中文";
     private string? _currentRootPath;
     private ProjectInfo? _selectedProject;
     private ArchitectureNode? _selectedListedNode;
@@ -44,6 +47,15 @@ public sealed class MainWindowViewModel : ViewModelBase
     public NodeDetailsViewModel NodeDetails { get; } = new();
     public IReadOnlyList<string> AvailableTypeFilters => TypeFilterOptions;
     public IReadOnlyList<GraphType> AvailableGraphTypes => GraphTypeOptions;
+    public IReadOnlyList<string> AvailableLanguages => LanguageOptions;
+
+    public MainWindowViewModel()
+    {
+        _localization.LanguageChanged += HandleLanguageChanged;
+        Status = L("StatusIdle");
+        AnalysisStatus = L("StatusIdleShort");
+        UpdateTopStatus();
+    }
 
     public string SearchText
     {
@@ -117,6 +129,37 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _topStatus;
         private set => SetProperty(ref _topStatus, value);
     }
+
+    public string SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set
+        {
+            if (!SetProperty(ref _selectedLanguage, value))
+            {
+                return;
+            }
+
+            _localization.SetLanguage(value == "English" ? "en-US" : "zh-TW");
+        }
+    }
+
+    public string WorkspaceTabText => L("WorkspaceTab");
+    public string SettingsTabText => L("SettingsTab");
+    public string OpenFolderText => L("OpenFolder");
+    public string ReloadText => L("Reload");
+    public string ExportText => L("Export");
+    public string SearchPlaceholderText => L("SearchPlaceholder");
+    public string NodesTitleText => L("Nodes");
+    public string NodeDetailsTitleText => L("NodeDetails");
+    public string DiagnosticsTitleText => L("Diagnostics");
+    public string SettingsTitleText => L("SettingsTitle");
+    public string SettingsDescriptionText => L("SettingsDescription");
+    public string GraphSectionText => L("GraphSection");
+    public string ShowLineCountText => L("ShowLineCount");
+    public string LanguageText => L("Language");
+
+    public string L(string key) => _localization.Get(key);
 
     public string? CurrentRootPath
     {
@@ -253,7 +296,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             case ArchitectureNodeType.Folder:
                 if (!CanDrillIntoFolder(node))
                 {
-                    Status = $"Folder '{node.Name}' has no child items to display.";
+                    Status = string.Format(L("FolderNoChildTemplate"), node.Name);
                     break;
                 }
 
@@ -412,12 +455,32 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void UpdateGraphStatus()
     {
-        Status = $"Graph: {SelectedGraphType} | Nodes: {Graph.Nodes.Count} | Edges: {Graph.Edges.Count}";
+        Status = string.Format(L("StatusGraphTemplate"), SelectedGraphType, Graph.Nodes.Count, Graph.Edges.Count);
     }
 
     private void UpdateTopStatus()
     {
-        TopStatus = $"{Status} | {AnalysisStatus} | Tasks: {BackgroundTaskCount}";
+        TopStatus = $"{Status} | {AnalysisStatus} | {L("StatusTasks")}: {BackgroundTaskCount}";
+    }
+
+    private void HandleLanguageChanged()
+    {
+        OnPropertyChanged(nameof(WorkspaceTabText));
+        OnPropertyChanged(nameof(SettingsTabText));
+        OnPropertyChanged(nameof(OpenFolderText));
+        OnPropertyChanged(nameof(ReloadText));
+        OnPropertyChanged(nameof(ExportText));
+        OnPropertyChanged(nameof(SearchPlaceholderText));
+        OnPropertyChanged(nameof(NodesTitleText));
+        OnPropertyChanged(nameof(NodeDetailsTitleText));
+        OnPropertyChanged(nameof(DiagnosticsTitleText));
+        OnPropertyChanged(nameof(SettingsTitleText));
+        OnPropertyChanged(nameof(SettingsDescriptionText));
+        OnPropertyChanged(nameof(GraphSectionText));
+        OnPropertyChanged(nameof(ShowLineCountText));
+        OnPropertyChanged(nameof(LanguageText));
+        UpdateGraphStatus();
+        UpdateTopStatus();
     }
 
     private bool MatchesDrillFilter(ArchitectureNode node)

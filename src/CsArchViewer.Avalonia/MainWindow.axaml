@@ -16,7 +16,7 @@
                 Padding="0"
                 TabStripPlacement="Top"
                 Background="#0B1220">
-      <TabItem Header="工作區" FontWeight="SemiBold" Padding="14,8">
+      <TabItem Header="{Binding WorkspaceTabText}" FontWeight="SemiBold" Padding="14,8">
         <DockPanel>
           <Border DockPanel.Dock="Top"
                   Padding="10,8"
@@ -37,8 +37,8 @@
                          Orientation="Horizontal"
                          VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,6">
-                  <Button Content="Open Folder" Click="OpenFolder_OnClick" />
-                  <Button Content="Reload" Click="Reload_OnClick" />
+                  <Button Content="{Binding OpenFolderText}" Click="OpenFolder_OnClick" />
+                  <Button Content="{Binding ReloadText}" Click="Reload_OnClick" />
                   <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <ComboBox x:Name="ExportFormatCombo"
@@ -48,7 +48,7 @@
                       <ComboBoxItem Content="JSON" />
                       <ComboBoxItem Content="DOT" />
                     </ComboBox>
-                    <Button Content="Export" Click="Export_OnClick" />
+                    <Button Content="{Binding ExportText}" Click="Export_OnClick" />
                   </StackPanel>
                   <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
                   <ComboBox Width="190"
@@ -60,7 +60,7 @@
                   <Separator Width="1" Height="22" Margin="4,0" Background="#2E3748" />
                   <TextBox Width="280"
                            VerticalAlignment="Center"
-                           PlaceholderText="Search project..."
+                           PlaceholderText="{Binding SearchPlaceholderText}"
                            Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
               </WrapPanel>
@@ -91,7 +91,7 @@
                 <TextBlock DockPanel.Dock="Top"
                            FontWeight="Bold"
                            Margin="10,10,10,4"
-                           Text="Nodes" />
+                           Text="{Binding NodesTitleText}" />
                 <ListBox Margin="10,0,10,10"
                          ItemsSource="{Binding ListedNodes}"
                          SelectedItem="{Binding SelectedListedNode, Mode=TwoWay}">
@@ -197,7 +197,7 @@
                     BorderThickness="1,0,0,0">
               <ScrollViewer>
                 <StackPanel Margin="10" Spacing="8">
-                  <TextBlock FontWeight="Bold" Text="Node Details" />
+                  <TextBlock FontWeight="Bold" Text="{Binding NodeDetailsTitleText}" />
                   <TextBlock Text="Project Name" FontWeight="SemiBold" />
                   <TextBlock Text="{Binding NodeDetails.ProjectName}" TextWrapping="Wrap" />
                   <TextBlock Text="Node Type" FontWeight="SemiBold" />
@@ -279,7 +279,7 @@
                   Background="#0B1220">
             <Grid RowDefinitions="Auto,*">
               <DockPanel LastChildFill="False">
-                <TextBlock DockPanel.Dock="Left" Text="Diagnostics" FontWeight="Bold" />
+                <TextBlock DockPanel.Dock="Left" Text="{Binding DiagnosticsTitleText}" FontWeight="Bold" />
                 <Button x:Name="DiagnosticsToggleButton"
                         DockPanel.Dock="Right"
                         Width="24"
@@ -310,7 +310,7 @@
         </Grid>
         </DockPanel>
       </TabItem>
-      <TabItem Header="設定" FontWeight="SemiBold" Padding="14,8">
+      <TabItem Header="{Binding SettingsTabText}" FontWeight="SemiBold" Padding="14,8">
         <views:SettingsView />
       </TabItem>
     </TabControl>

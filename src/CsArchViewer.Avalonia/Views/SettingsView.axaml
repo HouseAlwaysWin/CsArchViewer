@@ -8,11 +8,11 @@
              x:DataType="vm:MainWindowViewModel">
   <ScrollViewer>
     <StackPanel Margin="24" Spacing="20" MaxWidth="720">
-      <TextBlock Text="設定"
+      <TextBlock Text="{Binding SettingsTitleText}"
                  FontSize="22"
                  FontWeight="SemiBold"
                  Foreground="#E2E8F0" />
-      <TextBlock Text="外觀與圖表顯示選項。"
+      <TextBlock Text="{Binding SettingsDescriptionText}"
                  Foreground="#94A3B8"
                  TextWrapping="Wrap" />
       <Border Background="#0F172A"
@@ -21,12 +21,20 @@
               CornerRadius="6"
               Padding="16">
         <StackPanel Spacing="12">
-          <TextBlock Text="圖表"
+          <TextBlock Text="{Binding GraphSectionText}"
                      FontWeight="SemiBold"
                      Foreground="#CBD5E1" />
-          <CheckBox Content="在節點上顯示行數"
+          <CheckBox Content="{Binding ShowLineCountText}"
                     IsChecked="{Binding ShowLineCountOnNodes, Mode=TwoWay}"
                     Foreground="#E2E8F0" />
+
+          <TextBlock Text="{Binding LanguageText}"
+                     FontWeight="SemiBold"
+                     Foreground="#CBD5E1"
+                     Margin="0,8,0,0" />
+          <ComboBox Width="200"
+                    ItemsSource="{Binding AvailableLanguages}"
+                    SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
         </StackPanel>
       </Border>
     </StackPanel>

@@ -74,7 +74,11 @@ public partial class MainWindow : Window
                     return;
                 }
 
-                QueueAnalysis(ViewModel.CurrentRootPath!, [filePath], AnalysisPriority.Normal, $"File changed: {Path.GetFileName(filePath)}");
+                QueueAnalysis(
+                    ViewModel.CurrentRootPath!,
+                    [filePath],
+                    AnalysisPriority.Normal,
+                    string.Format(ViewModel.L("FileChangedTemplate"), Path.GetFileName(filePath)));
             });
         };
     }
@@ -88,7 +92,7 @@ public partial class MainWindow : Window
 
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select .NET solution folder",
+            Title = ViewModel.L("SelectFolderTitle"),
             AllowMultiple = false
         });
 
@@ -121,7 +125,7 @@ public partial class MainWindow : Window
     {
         ViewModel.CurrentRootPath = rootPath;
         _fileChangeTracker.Start(rootPath);
-        QueueAnalysis(rootPath, null, AnalysisPriority.High, "Running full analysis...");
+        QueueAnalysis(rootPath, null, AnalysisPriority.High, ViewModel.L("RunningFullAnalysis"));
         await Task.CompletedTask;
     }
 
@@ -169,7 +173,7 @@ public partial class MainWindow : Window
 
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = $"Export {formatName}",
+            Title = string.Format(ViewModel.L("ExportTitleTemplate"), formatName),
             SuggestedFileName = $"csarchviewer-{ViewModel.SelectedGraphType}{extension}",
             FileTypeChoices =
             [
@@ -188,7 +192,7 @@ public partial class MainWindow : Window
         await using var stream = await file.OpenWriteAsync();
         using var writerStream = new StreamWriter(stream);
         await writerStream.WriteAsync(writer(graph));
-        ViewModel.Status = $"Exported {formatName}: {file.Name}";
+        ViewModel.Status = string.Format(ViewModel.L("ExportedTemplate"), formatName, file.Name);
     }
 
     private void DiagnosticsSplitter_OnDoubleTapped(object? sender, TappedEventArgs e)
@@ -258,8 +262,8 @@ public partial class MainWindow : Window
                     ViewModel.SetDiagnostics(diagnostics);
                     ViewModel.IsAnalyzing = false;
                     ViewModel.AnalysisStatus = update.IsIncremental
-                        ? $"Incremental analysis updated: {string.Join(", ", update.ImpactedGraphs)}"
-                        : "Full analysis completed.";
+                        ? string.Format(ViewModel.L("IncrementalUpdatedTemplate"), string.Join(", ", update.ImpactedGraphs))
+                        : ViewModel.L("FullAnalysisCompleted");
                 });
             }
             catch (Exception ex)
@@ -267,8 +271,8 @@ public partial class MainWindow : Window
                 Dispatcher.UIThread.Post(() =>
                 {
                     ViewModel.IsAnalyzing = false;
-                    ViewModel.AnalysisStatus = $"Analysis failed: {ex.Message}";
-                    ViewModel.Status = $"Analyze failed: {ex.Message}";
+                    ViewModel.AnalysisStatus = string.Format(ViewModel.L("AnalysisFailedTemplate"), ex.Message);
+                    ViewModel.Status = string.Format(ViewModel.L("AnalyzeFailedTemplate"), ex.Message);
                 });
             }
         }, priority);
