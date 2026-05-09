@@ -18,11 +18,6 @@ public partial class MainWindow
         ToggleDiagnosticsPanel();
     }
 
-    private void DiagnosticsToggleButton_OnClick(object? sender, RoutedEventArgs e)
-    {
-        ToggleDiagnosticsPanel();
-    }
-
     private void ToggleDiagnosticsPanel()
     {
         var layoutGrid = this.FindControl<Grid>("DiagnosticsLayoutGrid");
@@ -32,16 +27,11 @@ public partial class MainWindow
         }
 
         var diagnosticsContentRow = layoutGrid.RowDefinitions[2];
-        var toggleButton = this.FindControl<Button>("DiagnosticsToggleButton");
         var currentHeight = diagnosticsContentRow.Height;
         var isCollapsed = currentHeight.IsAbsolute && currentHeight.Value <= 1;
         if (isCollapsed)
         {
             diagnosticsContentRow.Height = _lastDiagnosticsHeight;
-            if (toggleButton is not null)
-            {
-                toggleButton.Content = "▾";
-            }
             return;
         }
 
@@ -51,10 +41,6 @@ public partial class MainWindow
         }
 
         diagnosticsContentRow.Height = new GridLength(0);
-        if (toggleButton is not null)
-        {
-            toggleButton.Content = "▸";
-        }
     }
 
     private void DependencyPathShortest_OnClick(object? sender, RoutedEventArgs e)

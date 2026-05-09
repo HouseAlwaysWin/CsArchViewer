@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -58,6 +59,7 @@ public partial class MainWindow : Window
     private MetricsSummary? _latestMetricsSummary;
     private CancellationTokenSource? _stateSaveCts;
     private bool _isRestoringWorkspaceState;
+    private Dictionary<string, (double X, double Y)>? _preCompactNodePositions;
 
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
@@ -144,6 +146,7 @@ public partial class MainWindow : Window
             or nameof(MainWindowViewModel.SelectedLanguage)
             or nameof(MainWindowViewModel.SelectedTheme)
             or nameof(MainWindowViewModel.SelectedGraphLayout)
+            or nameof(MainWindowViewModel.IsToolbarExpanded)
             or nameof(MainWindowViewModel.ShowLineCountOnNodes)
             or nameof(MainWindowViewModel.RestoreLastSession)
             or nameof(MainWindowViewModel.AutoSaveSession);
@@ -350,6 +353,110 @@ public partial class MainWindow : Window
 
         GraphViewControl.ZoomToNode(selectedNode);
         _appLogService.Info("Graph", $"Zoomed to selection: {selectedNode.Name}");
+    }
+
+    private void CompactRelated_OnClick(object? sender, RoutedEventArgs e)
+    {
+        _preCompactNodePositions = ViewModel.Graph.Nodes.ToDictionary(
+            node => node.Id,
+            node => (node.X, node.Y),
+            StringComparer.OrdinalIgnoreCase);
+
+        var visibleNodes = ViewModel.Graph.Nodes
+            .Where(node => !node.Metadata.TryGetValue("IsTypeVisible", out var visible) ||
+                           !string.Equals(visible, "false", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(node => node.Id, StringComparer.OrdinalIgnoreCase);
+        if (visibleNodes.Count <= 1)
+        {
+            return;
+        }
+
+        var selected = ViewModel.Graph.SelectedNode;
+        if (selected is not null && visibleNodes.TryGetValue(selected.Id, out var anchor))
+        {
+            var neighborIds = ViewModel.Graph.Edges
+                .Where(edge =>
+                    (string.Equals(edge.FromNodeId, anchor.Id, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(edge.ToNodeId, anchor.Id, StringComparison.OrdinalIgnoreCase)) &&
+                    visibleNodes.ContainsKey(edge.FromNodeId) &&
+                    visibleNodes.ContainsKey(edge.ToNodeId))
+                .Select(edge => string.Equals(edge.FromNodeId, anchor.Id, StringComparison.OrdinalIgnoreCase)
+                    ? edge.ToNodeId
+                    : edge.FromNodeId)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (neighborIds.Count > 0)
+            {
+                const double nodeWidth = 180d;
+                const double nodeHeight = 72d;
+                const double targetRadius = 240d;
+                var anchorCenter = new Point(anchor.X + (nodeWidth / 2d), anchor.Y + (nodeHeight / 2d));
+                var angleStep = (Math.PI * 2d) / Math.Max(1, neighborIds.Count);
+                for (var i = 0; i < neighborIds.Count; i++)
+                {
+                    var neighbor = visibleNodes[neighborIds[i]];
+                    var angle = angleStep * i;
+                    var targetCenter = new Point(
+                        anchorCenter.X + (Math.Cos(angle) * targetRadius),
+                        anchorCenter.Y + (Math.Sin(angle) * targetRadius));
+                    neighbor.X = targetCenter.X - (nodeWidth / 2d);
+                    neighbor.Y = targetCenter.Y - (nodeHeight / 2d);
+                }
+            }
+        }
+        else
+        {
+            var centroid = new Point(
+                visibleNodes.Values.Average(n => n.X),
+                visibleNodes.Values.Average(n => n.Y));
+            foreach (var node in visibleNodes.Values)
+            {
+                node.X = centroid.X + ((node.X - centroid.X) * 0.72d);
+                node.Y = centroid.Y + ((node.Y - centroid.Y) * 0.72d);
+            }
+        }
+
+        ViewModel.Graph.Touch();
+        GraphViewControl.FitToScreen();
+        ViewModel.Status = "Compacted related nodes.";
+    }
+
+    private void RestoreGraphPositions_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (_preCompactNodePositions is null || _preCompactNodePositions.Count == 0)
+        {
+            ViewModel.Status = "No compacted layout to restore.";
+            return;
+        }
+
+        foreach (var node in ViewModel.Graph.Nodes)
+        {
+            if (_preCompactNodePositions.TryGetValue(node.Id, out var position))
+            {
+                node.X = position.X;
+                node.Y = position.Y;
+            }
+        }
+
+        ViewModel.Graph.Touch();
+        GraphViewControl.FitToScreen();
+        ViewModel.Status = "Graph positions restored.";
+        _preCompactNodePositions = null;
+    }
+
+    private void ResetViewDefaults_OnClick(object? sender, RoutedEventArgs e)
+    {
+        ViewModel.ShowSelectedNodeNeighborhoodOnly = false;
+        ViewModel.SearchText = string.Empty;
+        ViewModel.SelectedTypeFilter = "All";
+        ViewModel.SelectedGroupingMode = GraphGroupingMode.None;
+        ViewModel.SelectedGraphLayout = "Auto";
+        ViewModel.Graph.SelectedNode = null;
+        ViewModel.ClearDependencyPathPresentation();
+        ViewModel.Graph.Touch();
+        GraphViewControl.FitToScreen();
+        ViewModel.Status = "View reset to defaults.";
     }
 
     private void QueueAnalysis(

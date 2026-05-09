@@ -73,6 +73,9 @@ public sealed partial class MainWindowViewModel
     public string GroupByText => L("GroupBy");
     public string FitToScreenText => L("FitToScreen");
     public string ZoomToSelectionText => L("ZoomToSelection");
+    public string CompactRelatedText => L("CompactRelated");
+    public string RestoreGraphPositionsText => L("RestoreGraphPositions");
+    public string ResetViewDefaultsText => L("ResetViewDefaults");
     public string FocusNeighborhoodOnlyText => L("FocusNeighborhoodOnly");
     public string DependencyPathTabText => L("DependencyPathTab");
     public string DependencyPathSourceTextLabel => L("DependencyPathSource");
@@ -171,7 +174,11 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(GroupByText));
         OnPropertyChanged(nameof(FitToScreenText));
         OnPropertyChanged(nameof(ZoomToSelectionText));
+        OnPropertyChanged(nameof(CompactRelatedText));
+        OnPropertyChanged(nameof(RestoreGraphPositionsText));
+        OnPropertyChanged(nameof(ResetViewDefaultsText));
         OnPropertyChanged(nameof(FocusNeighborhoodOnlyText));
+        OnPropertyChanged(nameof(ToolbarToggleText));
         OnPropertyChanged(nameof(DependencyPathTabText));
         OnPropertyChanged(nameof(DependencyPathSourceTextLabel));
         OnPropertyChanged(nameof(DependencyPathTargetTextLabel));

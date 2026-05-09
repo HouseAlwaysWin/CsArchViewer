@@ -58,6 +58,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private string _selectedTheme = "Dark";
     private string _selectedGraphLayout = "Auto";
     private string _selectedDiagnosticsSeverityFilter = "All";
+    private bool _isToolbarExpanded;
     private string? _currentRootPath;
     private ProjectInfo? _selectedProject;
     private ArchitectureNode? _selectedListedNode;
@@ -291,6 +292,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             }
         }
     }
+
+    public bool IsToolbarExpanded
+    {
+        get => _isToolbarExpanded;
+        set
+        {
+            if (SetProperty(ref _isToolbarExpanded, value))
+            {
+                OnPropertyChanged(nameof(ToolbarToggleText));
+            }
+        }
+    }
+
+    public string ToolbarToggleText => IsToolbarExpanded ? L("ToolbarLess") : L("ToolbarMore");
 
     public string PerformanceStatusText
     {
