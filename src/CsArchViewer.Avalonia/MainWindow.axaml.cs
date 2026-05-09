@@ -326,10 +326,10 @@ public partial class MainWindow : Window
         try
         {
             var api = $"https://api.github.com/repos/{UpdateRepoOwner}/{UpdateRepoName}/releases?per_page=30";
-            using var response = await UpdateHttpClient.GetAsync(api).ConfigureAwait(false);
+            using var response = await UpdateHttpClient.GetAsync(api);
             response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var releases = await JsonSerializer.DeserializeAsync<List<GitHubReleaseDto>>(stream).ConfigureAwait(false) ?? [];
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var releases = await JsonSerializer.DeserializeAsync<List<GitHubReleaseDto>>(stream) ?? [];
 
             var versions = releases
                 .Where(r => !string.IsNullOrWhiteSpace(r.TagName))

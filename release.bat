@@ -24,7 +24,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo %VERSION_TAG% | findstr /R /C:"^v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
+pwsh -NoProfile -Command "if ('%VERSION_TAG%' -match '^v\d+\.\d+\.\d+$') { exit 0 } else { exit 1 }" >nul 2>nul
 if errorlevel 1 (
   echo [release] ERROR: invalid version format.
   echo [release] Expected format: vX.Y.Z ^(example: v1.2.3^)
