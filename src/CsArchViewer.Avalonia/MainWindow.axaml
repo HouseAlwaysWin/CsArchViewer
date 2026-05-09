@@ -21,10 +21,12 @@
     <conv:ExplorerSymbolKindBrushConverter x:Key="ExplorerSymbolKindBrushConverter" />
   </Window.Resources>
   <DockPanel>
-    <TabControl Margin="0"
+    <TabControl x:Name="MainTabControl"
+                Margin="0"
                 Padding="0"
                 TabStripPlacement="Top"
-                Background="{DynamicResource AppWindowBackgroundBrush}">
+                Background="{DynamicResource AppWindowBackgroundBrush}"
+                SelectionChanged="MainTabControl_OnSelectionChanged">
       <TabItem Header="{Binding WorkspaceTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <DockPanel>
           <Border DockPanel.Dock="Top"
@@ -569,7 +571,11 @@
       <TabItem Header="{Binding MetricsTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
         <views:MetricsDashboardView />
       </TabItem>
-      <TabItem Header="{Binding UpdatesTabText}" FontWeight="SemiBold" FontSize="14" Padding="14,8">
+      <TabItem Tag="Updates"
+               Header="{Binding UpdatesTabText}"
+               FontWeight="SemiBold"
+               FontSize="14"
+               Padding="14,8">
         <Border Padding="16"
                 Background="{DynamicResource AppWindowBackgroundBrush}">
           <StackPanel Spacing="12" MaxWidth="860">

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -31,9 +32,10 @@ namespace CsArchViewer.Avalonia;
 
 public partial class MainWindow : Window
 {
-    private const string UpdateRepoOwner = "martin951";
+    private const string UpdateRepoOwner = "HouseAlwaysWin";
     private const string UpdateRepoName = "CsArchViewer";
     private static readonly HttpClient UpdateHttpClient = CreateUpdateHttpClient();
+    private bool _updatesTabAutoRefreshPending = true;
     private GridLength _lastDiagnosticsHeight = new(180);
 
     private readonly RoslynSolutionLoader _roslynSolutionLoader = new();
@@ -273,6 +275,22 @@ public partial class MainWindow : Window
         await RefreshVersionsAsync();
     }
 
+    private async void MainTabControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not TabControl tab || tab.SelectedItem is not TabItem item || !Equals(item.Tag, "Updates"))
+        {
+            return;
+        }
+
+        if (!_updatesTabAutoRefreshPending)
+        {
+            return;
+        }
+
+        _updatesTabAutoRefreshPending = false;
+        await RefreshVersionsAsync();
+    }
+
     private void SwitchVersion_OnClick(object? sender, RoutedEventArgs e)
     {
         var target = ViewModel.SelectedUpdateVersion;
@@ -282,7 +300,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (string.Equals(target.VersionTag, ViewModel.CurrentAppVersion, StringComparison.OrdinalIgnoreCase))
+        if (ReleaseTagMatchesCurrent(target.VersionTag, ViewModel.CurrentAppVersion))
         {
             ViewModel.UpdateStatusText = ViewModel.L("UpdateStatusAlreadyCurrent");
             return;
@@ -316,20 +334,56 @@ public partial class MainWindow : Window
 
     private async Task RefreshVersionsAsync()
     {
-        if (ViewModel.IsCheckingUpdates)
+        var started = false;
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (ViewModel.IsCheckingUpdates)
+            {
+                return;
+            }
+
+            ViewModel.IsCheckingUpdates = true;
+            started = true;
+        });
+
+        if (!started)
         {
             return;
         }
 
-        ViewModel.IsCheckingUpdates = true;
-        ViewModel.UpdateStatusText = ViewModel.L("UpdateStatusLoading");
+        var (owner, repoName) = ResolveUpdateRepo();
+
         try
         {
-            var api = $"https://api.github.com/repos/{UpdateRepoOwner}/{UpdateRepoName}/releases?per_page=30";
-            using var response = await UpdateHttpClient.GetAsync(api);
-            response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            var releases = await JsonSerializer.DeserializeAsync<List<GitHubReleaseDto>>(stream) ?? [];
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                ViewModel.UpdateStatusText =
+                    $"{ViewModel.L("UpdateStatusLoading")} {string.Format(ViewModel.L("UpdateStatusRepoHintTemplate"), owner, repoName)}");
+
+            var api = $"https://api.github.com/repos/{owner}/{repoName}/releases?per_page=30";
+            using var response = await UpdateHttpClient.GetAsync(api).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var detail = string.IsNullOrWhiteSpace(body)
+                    ? $"{response.StatusCode} {response.ReasonPhrase}"
+                    : $"{response.StatusCode}: {body}";
+                var statusCode = response.StatusCode;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (statusCode == HttpStatusCode.NotFound)
+                    {
+                        ViewModel.UpdateStatusText = string.Format(ViewModel.L("UpdateStatus404HintTemplate"), owner, repoName, api);
+                        return;
+                    }
+
+                    ViewModel.UpdateStatusText =
+                        $"{string.Format(ViewModel.L("UpdateStatusLoadFailedTemplate"), detail)}\n{string.Format(ViewModel.L("UpdateStatusApiUrlTemplate"), api)} {string.Format(ViewModel.L("UpdateStatusRepoHintTemplate"), owner, repoName)}";
+                });
+                return;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            var releases = await JsonSerializer.DeserializeAsync<List<GitHubReleaseDto>>(stream).ConfigureAwait(false) ?? [];
 
             var versions = releases
                 .Where(r => !string.IsNullOrWhiteSpace(r.TagName))
@@ -355,19 +409,59 @@ public partial class MainWindow : Window
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 ViewModel.SetUpdateVersions(versions);
+                var repoHint = string.Format(ViewModel.L("UpdateStatusRepoHintTemplate"), owner, repoName);
                 ViewModel.UpdateStatusText = versions.Count == 0
-                    ? ViewModel.L("UpdateStatusNoRelease")
-                    : string.Format(ViewModel.L("UpdateStatusLoadedTemplate"), versions.Count);
+                    ? $"{ViewModel.L("UpdateStatusNoRelease")} {repoHint}"
+                    : $"{string.Format(ViewModel.L("UpdateStatusLoadedTemplate"), versions.Count)} {repoHint}";
             });
         }
         catch (Exception ex)
         {
-            ViewModel.UpdateStatusText = string.Format(ViewModel.L("UpdateStatusLoadFailedTemplate"), ex.Message);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                ViewModel.UpdateStatusText =
+                    $"{string.Format(ViewModel.L("UpdateStatusLoadFailedTemplate"), ex.Message)} {string.Format(ViewModel.L("UpdateStatusRepoHintTemplate"), owner, repoName)}");
         }
         finally
         {
-            ViewModel.IsCheckingUpdates = false;
+            await Dispatcher.UIThread.InvokeAsync(() => ViewModel.IsCheckingUpdates = false);
         }
+    }
+
+    private static (string Owner, string Name) ResolveUpdateRepo()
+    {
+        var raw = Environment.GetEnvironmentVariable("CSARCHVIEWER_UPDATE_REPO");
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            var parts = raw.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 2)
+            {
+                return (parts[0], parts[1]);
+            }
+        }
+
+        return (UpdateRepoOwner, UpdateRepoName);
+    }
+
+    private static bool ReleaseTagMatchesCurrent(string releaseTag, string currentVersion)
+    {
+        static string Normalize(string s)
+        {
+            s = s.Trim();
+            if (s.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            {
+                s = s[1..];
+            }
+
+            var plus = s.IndexOf('+', StringComparison.Ordinal);
+            if (plus >= 0)
+            {
+                s = s[..plus];
+            }
+
+            return s.Trim();
+        }
+
+        return string.Equals(Normalize(releaseTag), Normalize(currentVersion), StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task RestoreWorkspaceStateAsync()

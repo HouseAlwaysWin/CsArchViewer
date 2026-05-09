@@ -89,5 +89,5 @@ if errorlevel 1 (
 )
 
 echo [release] Done. GitHub Action "release" should start automatically.
-echo [release] Check Actions: https://github.com/martin951/CsArchViewer/actions
+echo [release] Check Actions: https://github.com/HouseAlwaysWin/CsArchViewer/actions
 exit /b 0
