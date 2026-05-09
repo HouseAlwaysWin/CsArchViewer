@@ -18,10 +18,10 @@ public sealed partial class GraphCanvas
             return;
         }
 
-        var minX = visibleNodes.Min(n => n.X);
-        var minY = visibleNodes.Min(n => n.Y);
-        var maxX = visibleNodes.Max(n => n.X + NodeWidth);
-        var maxY = visibleNodes.Max(n => n.Y + NodeHeight);
+        var minX = visibleNodes.Min(n => GetNodeBounds(n).X);
+        var minY = visibleNodes.Min(n => GetNodeBounds(n).Y);
+        var maxX = visibleNodes.Max(n => GetNodeBounds(n).Right);
+        var maxY = visibleNodes.Max(n => GetNodeBounds(n).Bottom);
         var width = Math.Max(1, maxX - minX);
         var height = Math.Max(1, maxY - minY);
 
@@ -44,7 +44,7 @@ public sealed partial class GraphCanvas
         }
 
         _zoom = 1.45;
-        var nodeCenter = new Point(node.X + (NodeWidth / 2d), node.Y + (NodeHeight / 2d));
+        var nodeCenter = GetNodeCenter(node);
         var viewportCenter = new Point(Bounds.Width / 2d, Bounds.Height / 2d);
         _panOffset = viewportCenter - new Point(nodeCenter.X * _zoom, nodeCenter.Y * _zoom);
         InvalidateVisual();
@@ -67,10 +67,7 @@ public sealed partial class GraphCanvas
     {
         return Nodes.LastOrDefault(node =>
             IsNodeVisible(node) &&
-            graphPoint.X >= node.X &&
-            graphPoint.X <= node.X + NodeWidth &&
-            graphPoint.Y >= node.Y &&
-            graphPoint.Y <= node.Y + NodeHeight);
+            GetNodeBounds(node).Contains(graphPoint));
     }
 
     private static bool IsNodeVisible(ArchitectureNode node)
@@ -150,8 +147,35 @@ public sealed partial class GraphCanvas
         return new Point(point.X * _zoom + _panOffset.X, point.Y * _zoom + _panOffset.Y);
     }
 
+    private Rect TransformRect(Rect rect)
+    {
+        return new Rect(
+            TransformPoint(new Point(rect.X, rect.Y)),
+            new Size(rect.Width * _zoom, rect.Height * _zoom));
+    }
+
     private Point InverseTransformPoint(Point point)
     {
         return new Point((point.X - _panOffset.X) / _zoom, (point.Y - _panOffset.Y) / _zoom);
+    }
+
+    private static double GetNodeOverlayScale(ArchitectureNode node)
+    {
+        return node.Metadata.TryGetValue("OverlayScale", out var rawScale) &&
+               double.TryParse(rawScale, out var parsedScale)
+            ? Math.Clamp(parsedScale, 0.7, 2.0)
+            : 1.0;
+    }
+
+    private static Rect GetNodeBounds(ArchitectureNode node)
+    {
+        var scale = GetNodeOverlayScale(node);
+        return new Rect(node.X, node.Y, NodeWidth * scale, NodeHeight * scale);
+    }
+
+    private static Point GetNodeCenter(ArchitectureNode node)
+    {
+        var bounds = GetNodeBounds(node);
+        return new Point(bounds.X + (bounds.Width / 2d), bounds.Y + (bounds.Height / 2d));
     }
 }

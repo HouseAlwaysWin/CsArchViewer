@@ -147,6 +147,12 @@ public sealed partial class GraphCanvas : Control
         var dependencyPathPen = new Pen(new SolidColorBrush(Color.Parse("#22D3EE")), 3);
         var textBrush = Brushes.White;
 
+        static bool IsDependencyPathHighlighted(ArchitectureEdge edge)
+        {
+            return edge.Metadata.TryGetValue("IsDependencyPathHit", out var pathValue) &&
+                   string.Equals(pathValue, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
         var renderedEdges = new List<RenderedEdge>();
         foreach (var edge in Edges)
         {
@@ -170,20 +176,19 @@ public sealed partial class GraphCanvas : Control
             if (edge.Type == ArchitectureEdgeType.Contains)
             {
                 var containsPath = BuildContainsPath(edge, from, to);
-                renderedEdges.Add(new RenderedEdge(edge, containsPath, new Point(containsPath.End.X, containsPath.End.Y - 12)));
+                renderedEdges.Add(CreateRenderedEdge(edge, containsPath));
             }
             else
             {
                 var referencePath = BuildReferencePath(edge, from, to);
-                renderedEdges.Add(new RenderedEdge(edge, referencePath, new Point(referencePath.End.X - 12, referencePath.End.Y)));
+                renderedEdges.Add(CreateRenderedEdge(edge, referencePath));
             }
         }
 
         var colors = AssignEdgeColors(renderedEdges);
         foreach (var rendered in renderedEdges)
         {
-            var isDependencyPathHit = rendered.Edge.Metadata.TryGetValue("IsDependencyPathHit", out var pathValue) &&
-                                      string.Equals(pathValue, "true", StringComparison.OrdinalIgnoreCase);
+            var isDependencyPathHit = IsDependencyPathHighlighted(rendered.Edge);
             var edgeColor = isDependencyPathHit
                 ? Color.Parse("#FDE047")
                 : colors.TryGetValue(GetEdgeKey(rendered.Edge), out var color)
@@ -193,20 +198,6 @@ public sealed partial class GraphCanvas : Control
 
             var referencePath = rendered.Path;
             DrawPolyline(context, pen, referencePath.Points);
-            DrawArrow(context, rendered.ArrowFrom, referencePath.End, edgeColor);
-
-            if (!string.IsNullOrWhiteSpace(rendered.Edge.Label))
-            {
-                var mid = referencePath.LabelAnchor;
-                var label = new FormattedText(
-                    rendered.Edge.Label,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight,
-                    Typeface.Default,
-                    10 * _zoom,
-                    new SolidColorBrush(Color.Parse("#CBD5E1")));
-                context.DrawText(label, mid + new Vector(4, -14));
-            }
         }
 
         foreach (var node in Nodes)
@@ -216,14 +207,7 @@ public sealed partial class GraphCanvas : Control
                 continue;
             }
 
-            var topLeft = TransformPoint(new Point(node.X, node.Y));
-            var overlayScale = node.Metadata.TryGetValue("OverlayScale", out var rawScale) &&
-                               double.TryParse(rawScale, out var parsedScale)
-                ? Math.Clamp(parsedScale, 0.7, 2.0)
-                : 1.0;
-            var scaledWidth = NodeWidth * _zoom * overlayScale;
-            var scaledHeight = NodeHeight * _zoom * overlayScale;
-            var rect = new Rect(topLeft, new Size(scaledWidth, scaledHeight));
+            var rect = TransformRect(GetNodeBounds(node));
             var outputType = node.Metadata.TryGetValue("OutputType", out var typeValue) ? typeValue : string.Empty;
             var isSearchHit = node.Metadata.TryGetValue("IsSearchHit", out var hitValue) &&
                               string.Equals(hitValue, "true", StringComparison.OrdinalIgnoreCase);
@@ -292,6 +276,42 @@ public sealed partial class GraphCanvas : Control
 
             context.DrawText(text, rect.TopLeft + new Vector(horizontalPadding, verticalPadding));
         }
+
+        foreach (var rendered in renderedEdges)
+        {
+            var isDependencyPathHit = IsDependencyPathHighlighted(rendered.Edge);
+            var edgeColor = isDependencyPathHit
+                ? Color.Parse("#FDE047")
+                : colors.TryGetValue(GetEdgeKey(rendered.Edge), out var color)
+                ? color
+                : Color.Parse("#6B7280");
+            var referencePath = rendered.Path;
+
+            DrawArrow(context, rendered.ArrowFrom, referencePath.End, edgeColor);
+
+            if (string.IsNullOrWhiteSpace(rendered.Edge.Label))
+            {
+                continue;
+            }
+
+            var mid = referencePath.LabelAnchor;
+            var label = new FormattedText(
+                rendered.Edge.Label,
+                System.Globalization.CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                Typeface.Default,
+                10 * _zoom,
+                new SolidColorBrush(Color.Parse("#CBD5E1")));
+            context.DrawText(label, mid + new Vector(4, -14));
+        }
+    }
+
+    private static RenderedEdge CreateRenderedEdge(ArchitectureEdge edge, EdgePath path)
+    {
+        var arrowFrom = path.Points.Count >= 2
+            ? path.Points[^2]
+            : path.End;
+        return new RenderedEdge(edge, path, arrowFrom);
     }
 
 }

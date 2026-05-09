@@ -89,6 +89,22 @@ public sealed partial class MainWindowViewModel
 
     private void UpdateTopStatus()
     {
-        TopStatus = $"{Status} | {AnalysisStatus} | {L("StatusTasks")}: {BackgroundTaskCount}";
+        var status = Status?.Trim() ?? string.Empty;
+        var analysis = AnalysisStatus?.Trim() ?? string.Empty;
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            parts.Add(status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(analysis) &&
+            !string.Equals(analysis, status, StringComparison.OrdinalIgnoreCase))
+        {
+            parts.Add(analysis);
+        }
+
+        parts.Add($"{L("StatusTasks")}: {BackgroundTaskCount}");
+        TopStatus = string.Join(" | ", parts);
     }
 }

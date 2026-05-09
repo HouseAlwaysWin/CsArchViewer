@@ -84,52 +84,22 @@ public sealed partial class GraphCanvas
 
     private EdgePath BuildContainsPath(ArchitectureEdge edge, ArchitectureNode from, ArchitectureNode to)
     {
+        var (fromSide, toSide) = DetermineAnchorSides(from, to, preferVertical: true);
         var key = GetEdgeKey(edge);
         var offset = GetEdgeOffset(key) + GetAutoContainsOffset(edge);
-        var p1 = new Point(from.X + NodeWidth / 2d, from.Y + NodeHeight);
-        var p2 = new Point(to.X + NodeWidth / 2d, to.Y);
-        var clampedOffset = ClampEdgeOffset(offset, p1, p2);
-        var lead = 26d;
-        var yTop = Math.Min(p1.Y + lead + clampedOffset.Y, p2.Y - 8);
-        var yBottom = Math.Max(p2.Y - lead + clampedOffset.Y, p1.Y + 8);
-        var midX = ((p1.X + p2.X) / 2d) + clampedOffset.X;
-
-        var points = new[]
-        {
-            TransformPoint(p1),
-            TransformPoint(new Point(p1.X, yTop)),
-            TransformPoint(new Point(midX, yTop)),
-            TransformPoint(new Point(midX, yBottom)),
-            TransformPoint(new Point(p2.X, yBottom)),
-            TransformPoint(p2)
-        };
-        var labelAnchor = TransformPoint(new Point(midX, (yTop + yBottom) / 2d));
-        return new EdgePath(points, points[^1], labelAnchor);
+        var p1 = GetAnchorPoint(from, fromSide);
+        var p2 = GetAnchorPoint(to, toSide);
+        return BuildOrthogonalPath(p1, fromSide, p2, toSide, offset);
     }
 
     private EdgePath BuildReferencePath(ArchitectureEdge edge, ArchitectureNode from, ArchitectureNode to)
     {
+        var (fromSide, toSide) = DetermineAnchorSides(from, to, preferVertical: false);
         var key = GetEdgeKey(edge);
         var offset = GetEdgeOffset(key) + GetAutoReferenceOffset(edge, from, to);
-        var p1 = new Point(from.X + NodeWidth, from.Y + NodeHeight / 2d);
-        var p2 = new Point(to.X, to.Y + NodeHeight / 2d);
-        var clampedOffset = ClampEdgeOffset(offset, p1, p2);
-        var lead = 26d;
-        var xLeft = Math.Min(p1.X + lead + clampedOffset.X, p2.X - 8);
-        var xRight = Math.Max(p2.X - lead + clampedOffset.X, p1.X + 8);
-        var midY = ((p1.Y + p2.Y) / 2d) + clampedOffset.Y;
-
-        var points = new[]
-        {
-            TransformPoint(p1),
-            TransformPoint(new Point(xLeft, p1.Y)),
-            TransformPoint(new Point(xLeft, midY)),
-            TransformPoint(new Point(xRight, midY)),
-            TransformPoint(new Point(xRight, p2.Y)),
-            TransformPoint(p2)
-        };
-        var labelAnchor = TransformPoint(new Point((xLeft + xRight) / 2d, midY));
-        return new EdgePath(points, points[^1], labelAnchor);
+        var p1 = GetAnchorPoint(from, fromSide);
+        var p2 = GetAnchorPoint(to, toSide);
+        return BuildOrthogonalPath(p1, fromSide, p2, toSide, offset);
     }
 
     private static string GetEdgeKey(ArchitectureEdge edge)
@@ -151,6 +121,105 @@ public sealed partial class GraphCanvas
         return new Vector(
             Math.Clamp(offset.X, -maxX, maxX),
             Math.Clamp(offset.Y, -maxY, maxY));
+    }
+
+    private static (NodeAnchorSide From, NodeAnchorSide To) DetermineAnchorSides(
+        ArchitectureNode from,
+        ArchitectureNode to,
+        bool preferVertical)
+    {
+        var fromCenter = GetNodeCenter(from);
+        var toCenter = GetNodeCenter(to);
+        var dx = toCenter.X - fromCenter.X;
+        var dy = toCenter.Y - fromCenter.Y;
+        var verticalDominant = Math.Abs(dy) > Math.Abs(dx);
+        var useVertical = preferVertical ? verticalDominant || Math.Abs(dy) >= Math.Abs(dx) : verticalDominant;
+
+        if (useVertical)
+        {
+            return dy >= 0
+                ? (NodeAnchorSide.Bottom, NodeAnchorSide.Top)
+                : (NodeAnchorSide.Top, NodeAnchorSide.Bottom);
+        }
+
+        return dx >= 0
+            ? (NodeAnchorSide.Right, NodeAnchorSide.Left)
+            : (NodeAnchorSide.Left, NodeAnchorSide.Right);
+    }
+
+    private static Point GetAnchorPoint(ArchitectureNode node, NodeAnchorSide side)
+    {
+        var bounds = GetNodeBounds(node);
+        var centerX = bounds.X + (bounds.Width / 2d);
+        var centerY = bounds.Y + (bounds.Height / 2d);
+        return side switch
+        {
+            NodeAnchorSide.Left => new Point(bounds.X, centerY),
+            NodeAnchorSide.Right => new Point(bounds.Right, centerY),
+            NodeAnchorSide.Top => new Point(centerX, bounds.Y),
+            NodeAnchorSide.Bottom => new Point(centerX, bounds.Bottom),
+            _ => new Point(bounds.Right, centerY)
+        };
+    }
+
+    private EdgePath BuildOrthogonalPath(
+        Point start,
+        NodeAnchorSide startSide,
+        Point end,
+        NodeAnchorSide endSide,
+        Vector offset)
+    {
+        var clampedOffset = ClampEdgeOffset(offset, start, end);
+        var lead = 26d;
+        var terminalGap = 12d;
+        var startNormal = GetSideNormal(startSide);
+        var endNormal = GetSideNormal(endSide);
+        var horizontalRoute = IsHorizontalSide(startSide) && IsHorizontalSide(endSide);
+
+        var rawPoints = new List<Point>(8);
+        Point labelAnchor;
+
+        if (horizontalRoute)
+        {
+            var startExit = new Point(start.X + (startNormal.X * lead), start.Y);
+            var endEntry = new Point(end.X + (endNormal.X * lead), end.Y);
+            var corridorStartX = ClampOutside(startExit.X + clampedOffset.X, start.X, startSide, terminalGap);
+            var corridorEndX = ClampOutside(endEntry.X + clampedOffset.X, end.X, endSide, terminalGap);
+            var midY = ((start.Y + end.Y) / 2d) + clampedOffset.Y;
+
+            AppendPoint(rawPoints, start);
+            AppendPoint(rawPoints, startExit);
+            AppendPoint(rawPoints, new Point(corridorStartX, startExit.Y));
+            AppendPoint(rawPoints, new Point(corridorStartX, midY));
+            AppendPoint(rawPoints, new Point(corridorEndX, midY));
+            AppendPoint(rawPoints, new Point(corridorEndX, endEntry.Y));
+            AppendPoint(rawPoints, endEntry);
+            AppendPoint(rawPoints, end);
+
+            labelAnchor = TransformPoint(new Point((corridorStartX + corridorEndX) / 2d, midY));
+        }
+        else
+        {
+            var startExit = new Point(start.X, start.Y + (startNormal.Y * lead));
+            var endEntry = new Point(end.X, end.Y + (endNormal.Y * lead));
+            var corridorStartY = ClampOutside(startExit.Y + clampedOffset.Y, start.Y, startSide, terminalGap);
+            var corridorEndY = ClampOutside(endEntry.Y + clampedOffset.Y, end.Y, endSide, terminalGap);
+            var midX = ((start.X + end.X) / 2d) + clampedOffset.X;
+
+            AppendPoint(rawPoints, start);
+            AppendPoint(rawPoints, startExit);
+            AppendPoint(rawPoints, new Point(startExit.X, corridorStartY));
+            AppendPoint(rawPoints, new Point(midX, corridorStartY));
+            AppendPoint(rawPoints, new Point(midX, corridorEndY));
+            AppendPoint(rawPoints, new Point(endEntry.X, corridorEndY));
+            AppendPoint(rawPoints, endEntry);
+            AppendPoint(rawPoints, end);
+
+            labelAnchor = TransformPoint(new Point(midX, (corridorStartY + corridorEndY) / 2d));
+        }
+
+        var points = rawPoints.Select(TransformPoint).ToArray();
+        return new EdgePath(points, points[^1], labelAnchor);
     }
 
     private Vector GetAutoContainsOffset(ArchitectureEdge edge)
@@ -385,6 +454,43 @@ public sealed partial class GraphCanvas
         return Math.Abs(left.X - right.X) < epsilon && Math.Abs(left.Y - right.Y) < epsilon;
     }
 
+    private static bool IsHorizontalSide(NodeAnchorSide side)
+    {
+        return side is NodeAnchorSide.Left or NodeAnchorSide.Right;
+    }
+
+    private static Vector GetSideNormal(NodeAnchorSide side)
+    {
+        return side switch
+        {
+            NodeAnchorSide.Left => new Vector(-1, 0),
+            NodeAnchorSide.Right => new Vector(1, 0),
+            NodeAnchorSide.Top => new Vector(0, -1),
+            NodeAnchorSide.Bottom => new Vector(0, 1),
+            _ => default
+        };
+    }
+
+    private static double ClampOutside(double value, double boundary, NodeAnchorSide side, double minDistance)
+    {
+        return side switch
+        {
+            NodeAnchorSide.Left => Math.Min(value, boundary - minDistance),
+            NodeAnchorSide.Right => Math.Max(value, boundary + minDistance),
+            NodeAnchorSide.Top => Math.Min(value, boundary - minDistance),
+            NodeAnchorSide.Bottom => Math.Max(value, boundary + minDistance),
+            _ => value
+        };
+    }
+
+    private static void AppendPoint(List<Point> points, Point point)
+    {
+        if (points.Count == 0 || !IsSamePoint(points[^1], point, 0.0001))
+        {
+            points.Add(point);
+        }
+    }
+
     private readonly record struct EdgePath(IReadOnlyList<Point> Points, Point End, Point LabelAnchor);
     private readonly record struct RenderedEdge(ArchitectureEdge Edge, EdgePath Path, Point ArrowFrom);
 
@@ -393,5 +499,13 @@ public sealed partial class GraphCanvas
         Unknown,
         Horizontal,
         Vertical
+    }
+
+    private enum NodeAnchorSide
+    {
+        Left,
+        Right,
+        Top,
+        Bottom
     }
 }
