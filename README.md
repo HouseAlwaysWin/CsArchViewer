@@ -1,88 +1,17 @@
 # CsArchViewer
 
-Lightweight .NET architecture explorer built with Avalonia.
+CsArchViewer is a lightweight .NET architecture explorer built with Avalonia.
 
-## Scope (v5 MVP)
+## What This Project Does
 
-- Scan a folder for `.sln` and `.csproj`.
-- Parse project-level data:
-  - `ProjectReference`
-  - `PackageReference`
-  - `TargetFramework`
-  - `OutputType`
-- Build and display graph views:
-  - Project Dependencies
-  - Package Dependencies
-  - Folder Structure
-  - File Structure
-  - Namespace Dependencies (Roslyn-based)
-  - Architecture Violations
-  - Type Dependencies
-  - File Dependencies
-  - Dependency Matrix
-- Run architecture rules against namespace dependencies.
-- Detect circular namespace dependencies.
-- Detect circular type dependencies.
-- Export graph as Mermaid / JSON / Graphviz DOT.
-- Incremental analysis engine with file hash cache.
-- Background analysis queue (non-blocking UI).
-- Live file watcher for `.cs`, `.csproj`, `.sln`.
-- Dependency explorer metadata (depends-on / referenced-by / counts).
-- Diagnostics pipeline:
-  - CircularDependency
-  - LayerViolation
-  - DependencyDepthWarning
-  - UnusedReference
-- Code Metrics / LOC Analysis:
-  - File LOC / Code LOC / Comment LOC / Blank LOC
-  - Project metrics / Namespace metrics / Dependency metrics
-  - Architecture health warnings:
-    - LargeFileWarning
-    - LargeNamespaceWarning
-    - HighDependencyWarning
-    - CircularDependencyWarning
-    - DeepDependencyWarning
-- Metrics Dashboard (Avalonia)
-- Graph overlay modes:
-  - Dependency Count
-  - LOC Heatmap
-  - Project Size
-  - Diagnostics Severity
-- Metrics filters:
-  - Large Files
-  - Highly Coupled
-  - Circular Dependencies
-  - High Dependency Depth
-- Metrics export:
-  - Metrics JSON
-  - Metrics CSV
-  - Metrics Markdown report
-- Select nodes and inspect details.
-- Reload analysis from the same folder.
-- Search and type filter.
-
-Not included in v5:
-
-- method call graph
-- symbol-level deep analysis
-- call hierarchy / IL analysis
-- multi-language analysis
-
-## Scope (v6 MVP — Architecture Explorer + lightweight code intelligence)
-
-Adds **`CsArchViewer.DotNet.SymbolExplorer`** (no Avalonia dependency):
-
-- **Roslyn symbol index** over C# compilation documents (`SemanticModel` / `ISymbol`): types, methods, properties, fields, events, namespaces.
-- **Incremental index refresh**: full rebuild after complete analysis; per-file re-index when `.cs` files change (best-effort on top of the cached workspace snapshot).
-- **Symbol Explorer UI** (workspace tab): fuzzy-ish search, results list, symbol summary.
-- **Find References** via `SymbolFinder` → locations listed in bottom tab; double-click or **Open Selected** uses OS default editor (path + line preserved in model).
-- **On-demand type analysis**: selecting a **graph type node** (Type Dependencies et al.) or a **type symbol** loads methods/properties/fields/events, base type, interfaces.
-- **Lightweight method metadata**: signature, accessibility, async/static/virtual flags, parameters, return type, **used types only** (no global method-call graph).
-- **Navigation helpers**: jump to definition for symbol / selected method.
-
-Explicitly **not** in v6:
-
-- Full method call graph, IL analysis, profiler, runtime tracing, ReSharper-grade refactoring.
+- Scans a folder containing `.sln`/`.csproj` files and builds architecture graphs.
+- Visualizes dependencies and structure from different perspectives:
+  - Project, package, folder, file, namespace, type, and matrix views.
+- Runs diagnostics (for example circular dependencies and rule violations).
+- Collects metrics (LOC, coupling, health warnings) and shows them in a dashboard.
+- Provides a Symbol Explorer (search symbols, find references, go to definition, inspect type/method metadata).
+- Supports graph export (Mermaid / JSON / DOT) and metrics export (JSON / CSV / Markdown).
+- Uses incremental analysis and file watching to keep results updated.
 
 ## Solution Layout
 
@@ -111,19 +40,19 @@ src/
 - `CsArchViewer.Metrics`: Roslyn-based LOC analyzers, aggregated metrics and health warnings.
 - `CsArchViewer.Avalonia`: UI, graph canvas, interaction, details pane.
 
-## Build
+## How To Build
 
 ```powershell
 dotnet build .\CsArchViewer.sln
 ```
 
-## Run
+## How To Run
 
 ```powershell
 dotnet run --project .\src\CsArchViewer.Avalonia\CsArchViewer.Avalonia.csproj
 ```
 
-## Usage
+## How To Use
 
 1. Launch app.
 2. Click **Open Folder**.
@@ -142,9 +71,3 @@ dotnet run --project .\src\CsArchViewer.Avalonia\CsArchViewer.Avalonia.csproj
    - double click canvas: fit to screen
 8. Use graph type dropdown to switch between dependency, structure, namespace and violation graphs.
 9. Click **Reload** to refresh.
-
-## Dependency Rules
-
-- `CsArchViewer.Core`: no project references.
-- `CsArchViewer.DotNet` -> `CsArchViewer.Core`
-- `CsArchViewer.Avalonia` -> `CsArchViewer.Core`, `CsArchViewer.DotNet`, `CsArchViewer.DotNet.SymbolExplorer`
