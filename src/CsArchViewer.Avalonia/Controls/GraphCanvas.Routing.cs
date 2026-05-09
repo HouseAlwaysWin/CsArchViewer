@@ -170,52 +170,44 @@ public sealed partial class GraphCanvas
         Vector offset)
     {
         var clampedOffset = ClampEdgeOffset(offset, start, end);
-        var lead = 26d;
-        var terminalGap = 12d;
+        var exitLead = 14d;
+        var entryLead = 8d;
         var startNormal = GetSideNormal(startSide);
         var endNormal = GetSideNormal(endSide);
         var horizontalRoute = IsHorizontalSide(startSide) && IsHorizontalSide(endSide);
 
-        var rawPoints = new List<Point>(8);
+        var rawPoints = new List<Point>(6);
         Point labelAnchor;
 
         if (horizontalRoute)
         {
-            var startExit = new Point(start.X + (startNormal.X * lead), start.Y);
-            var endEntry = new Point(end.X + (endNormal.X * lead), end.Y);
-            var corridorStartX = ClampOutside(startExit.X + clampedOffset.X, start.X, startSide, terminalGap);
-            var corridorEndX = ClampOutside(endEntry.X + clampedOffset.X, end.X, endSide, terminalGap);
+            var exitX = ClampOutside(start.X + (startNormal.X * exitLead) + clampedOffset.X, start.X, startSide, entryLead);
+            var entryX = ClampOutside(end.X + (endNormal.X * entryLead) + clampedOffset.X, end.X, endSide, entryLead);
             var midY = ((start.Y + end.Y) / 2d) + clampedOffset.Y;
 
             AppendPoint(rawPoints, start);
-            AppendPoint(rawPoints, startExit);
-            AppendPoint(rawPoints, new Point(corridorStartX, startExit.Y));
-            AppendPoint(rawPoints, new Point(corridorStartX, midY));
-            AppendPoint(rawPoints, new Point(corridorEndX, midY));
-            AppendPoint(rawPoints, new Point(corridorEndX, endEntry.Y));
-            AppendPoint(rawPoints, endEntry);
+            AppendPoint(rawPoints, new Point(exitX, start.Y));
+            AppendPoint(rawPoints, new Point(exitX, midY));
+            AppendPoint(rawPoints, new Point(entryX, midY));
+            AppendPoint(rawPoints, new Point(entryX, end.Y));
             AppendPoint(rawPoints, end);
 
-            labelAnchor = TransformPoint(new Point((corridorStartX + corridorEndX) / 2d, midY));
+            labelAnchor = TransformPoint(new Point((exitX + entryX) / 2d, midY));
         }
         else
         {
-            var startExit = new Point(start.X, start.Y + (startNormal.Y * lead));
-            var endEntry = new Point(end.X, end.Y + (endNormal.Y * lead));
-            var corridorStartY = ClampOutside(startExit.Y + clampedOffset.Y, start.Y, startSide, terminalGap);
-            var corridorEndY = ClampOutside(endEntry.Y + clampedOffset.Y, end.Y, endSide, terminalGap);
+            var exitY = ClampOutside(start.Y + (startNormal.Y * exitLead) + clampedOffset.Y, start.Y, startSide, entryLead);
+            var entryY = ClampOutside(end.Y + (endNormal.Y * entryLead) + clampedOffset.Y, end.Y, endSide, entryLead);
             var midX = ((start.X + end.X) / 2d) + clampedOffset.X;
 
             AppendPoint(rawPoints, start);
-            AppendPoint(rawPoints, startExit);
-            AppendPoint(rawPoints, new Point(startExit.X, corridorStartY));
-            AppendPoint(rawPoints, new Point(midX, corridorStartY));
-            AppendPoint(rawPoints, new Point(midX, corridorEndY));
-            AppendPoint(rawPoints, new Point(endEntry.X, corridorEndY));
-            AppendPoint(rawPoints, endEntry);
+            AppendPoint(rawPoints, new Point(start.X, exitY));
+            AppendPoint(rawPoints, new Point(midX, exitY));
+            AppendPoint(rawPoints, new Point(midX, entryY));
+            AppendPoint(rawPoints, new Point(end.X, entryY));
             AppendPoint(rawPoints, end);
 
-            labelAnchor = TransformPoint(new Point(midX, (corridorStartY + corridorEndY) / 2d));
+            labelAnchor = TransformPoint(new Point(midX, (exitY + entryY) / 2d));
         }
 
         var points = rawPoints.Select(TransformPoint).ToArray();
