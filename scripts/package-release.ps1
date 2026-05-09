@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$VersionTag
+    [string]$VersionTag,
+    [switch]$SingleFile
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +15,7 @@ $zipPath = Join-Path $packageDir $zipName
 
 Write-Host "[release] Version: $VersionTag"
 Write-Host "[release] Project: $projectPath"
+Write-Host "[release] Single-file mode: $SingleFile"
 
 if (-not (Test-Path $projectPath)) {
     throw "Project file not found: $projectPath"
@@ -23,13 +25,28 @@ New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
 New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
 
 dotnet restore $projectPath
-dotnet publish $projectPath `
-    -c Release `
-    -r win-x64 `
-    --self-contained true `
-    /p:PublishSingleFile=true `
-    /p:PublishTrimmed=false `
-    -o $publishDir
+
+$publishArgs = @(
+    "publish", $projectPath,
+    "-c", "Release",
+    "-r", "win-x64",
+    "--self-contained", "true",
+    "/p:PublishTrimmed=false",
+    "-o", $publishDir
+)
+
+if ($SingleFile) {
+    $publishArgs += @(
+        "/p:PublishSingleFile=true",
+        "/p:IncludeNativeLibrariesForSelfExtract=true",
+        "/p:IncludeAllContentForSelfExtract=true"
+    )
+}
+else {
+    $publishArgs += "/p:PublishSingleFile=false"
+}
+
+dotnet @publishArgs
 
 if (Test-Path $zipPath) {
     Remove-Item -Path $zipPath -Force

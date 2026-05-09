@@ -9,8 +9,12 @@ if "%~1"=="" (
 
 set "VERSION_TAG=%~1"
 set "REMOTE_NAME=origin"
+set "RELEASE_MODE=%~2"
 
 echo [release] Start release for %VERSION_TAG%
+if /I "%RELEASE_MODE%"=="single" (
+  echo [release] Local mode hint: single-file requested.
+)
 
 where git >nul 2>nul
 if errorlevel 1 (

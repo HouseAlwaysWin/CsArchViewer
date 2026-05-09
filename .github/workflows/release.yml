@@ -10,6 +10,11 @@ on:
         description: "Release version tag (for example: v1.2.3)"
         required: true
         type: string
+      single_file:
+        description: "Build as single-file exe (may break Roslyn BuildHost on some machines)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -48,7 +53,16 @@ jobs:
         id: package
         shell: pwsh
         run: |
-          ./scripts/package-release.ps1 -VersionTag "${{ steps.version.outputs.tag }}"
+          $singleFile = $false
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $singleFile = "${{ github.event.inputs.single_file }}" -eq "true"
+          }
+
+          if ($singleFile) {
+            ./scripts/package-release.ps1 -VersionTag "${{ steps.version.outputs.tag }}" -SingleFile
+          } else {
+            ./scripts/package-release.ps1 -VersionTag "${{ steps.version.outputs.tag }}"
+          }
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
