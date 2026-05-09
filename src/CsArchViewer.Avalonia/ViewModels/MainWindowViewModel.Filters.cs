@@ -32,6 +32,7 @@ public sealed partial class MainWindowViewModel
     private void ApplyFilters()
     {
         var keyword = SearchText?.Trim() ?? string.Empty;
+        var relationVisibleNodeIds = BuildRelationVisibleNodeIds();
         var filtered = _allProjects
             .Where(project => MatchesTypeFilter(project) &&
                               (keyword.Length == 0 ||
@@ -48,6 +49,11 @@ public sealed partial class MainWindowViewModel
         ListedNodes.Clear();
         foreach (var node in Graph.Nodes.Where(MatchesTypeFilter))
         {
+            if (!MatchesRelationFilter(node, relationVisibleNodeIds))
+            {
+                continue;
+            }
+
             if (keyword.Length == 0 ||
                 node.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
                 node.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase))
@@ -56,28 +62,86 @@ public sealed partial class MainWindowViewModel
             }
         }
 
-        MarkSearchMatches();
+        MarkSearchMatches(relationVisibleNodeIds);
         ApplyMetricsOverlay();
         Graph.Touch();
     }
 
-    private void MarkSearchMatches()
+    private void MarkSearchMatches(HashSet<string>? relationVisibleNodeIds)
     {
         var keyword = SearchText?.Trim() ?? string.Empty;
+        var relationVisibleEdges = BuildRelationVisibleEdges();
 
         foreach (var node in Graph.Nodes)
         {
             var typeVisible = MatchesTypeFilter(node);
             var drillVisible = MatchesDrillFilter(node);
+            var relationVisible = MatchesRelationFilter(node, relationVisibleNodeIds);
             var matched = typeVisible &&
                           drillVisible &&
+                          relationVisible &&
                           keyword.Length > 0 &&
                           (node.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
                            node.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             var metricsVisible = MatchesMetricsFilter(node);
             node.Metadata["IsSearchHit"] = matched ? "true" : "false";
-            node.Metadata["IsTypeVisible"] = (typeVisible && drillVisible && metricsVisible) ? "true" : "false";
+            node.Metadata["IsTypeVisible"] = (typeVisible && drillVisible && metricsVisible && relationVisible) ? "true" : "false";
         }
+
+        foreach (var edge in Graph.Edges)
+        {
+            var key = $"{edge.FromNodeId}->{edge.ToNodeId}";
+            var isVisible = relationVisibleEdges is null || relationVisibleEdges.Contains(key);
+            edge.Metadata["IsRelationVisible"] = isVisible ? "true" : "false";
+        }
+    }
+
+    private HashSet<string>? BuildRelationVisibleNodeIds()
+    {
+        if (!ShowSelectedNodeNeighborhoodOnly || Graph.SelectedNode is null)
+        {
+            return null;
+        }
+
+        var selectedId = Graph.SelectedNode.Id;
+        var related = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { selectedId };
+        foreach (var edge in Graph.Edges)
+        {
+            if (string.Equals(edge.FromNodeId, selectedId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(edge.ToNodeId, selectedId, StringComparison.OrdinalIgnoreCase))
+            {
+                related.Add(edge.FromNodeId);
+                related.Add(edge.ToNodeId);
+            }
+        }
+
+        return related;
+    }
+
+    private HashSet<string>? BuildRelationVisibleEdges()
+    {
+        if (!ShowSelectedNodeNeighborhoodOnly || Graph.SelectedNode is null)
+        {
+            return null;
+        }
+
+        var selectedId = Graph.SelectedNode.Id;
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var edge in Graph.Edges)
+        {
+            if (string.Equals(edge.FromNodeId, selectedId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(edge.ToNodeId, selectedId, StringComparison.OrdinalIgnoreCase))
+            {
+                keys.Add($"{edge.FromNodeId}->{edge.ToNodeId}");
+            }
+        }
+
+        return keys;
+    }
+
+    private static bool MatchesRelationFilter(ArchitectureNode node, HashSet<string>? relationVisibleNodeIds)
+    {
+        return relationVisibleNodeIds is null || relationVisibleNodeIds.Contains(node.Id);
     }
 
     private static void UpdateRecentSearchHistory(ObservableCollection<string> collection, string value)

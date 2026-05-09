@@ -45,6 +45,11 @@ public sealed partial class GraphCanvas
 
         foreach (var edge in Edges.Reverse())
         {
+            if (!IsEdgeVisible(edge))
+            {
+                continue;
+            }
+
             var from = Nodes.FirstOrDefault(node => node.Id == edge.FromNodeId);
             var to = Nodes.FirstOrDefault(node => node.Id == edge.ToNodeId);
             if (from is null || to is null || !IsNodeVisible(from) || !IsNodeVisible(to))
@@ -80,7 +85,7 @@ public sealed partial class GraphCanvas
     private EdgePath BuildContainsPath(ArchitectureEdge edge, ArchitectureNode from, ArchitectureNode to)
     {
         var key = GetEdgeKey(edge);
-        var offset = GetEdgeOffset(key);
+        var offset = GetEdgeOffset(key) + GetAutoContainsOffset(edge);
         var p1 = new Point(from.X + NodeWidth / 2d, from.Y + NodeHeight);
         var p2 = new Point(to.X + NodeWidth / 2d, to.Y);
         var clampedOffset = ClampEdgeOffset(offset, p1, p2);
@@ -105,7 +110,7 @@ public sealed partial class GraphCanvas
     private EdgePath BuildReferencePath(ArchitectureEdge edge, ArchitectureNode from, ArchitectureNode to)
     {
         var key = GetEdgeKey(edge);
-        var offset = GetEdgeOffset(key);
+        var offset = GetEdgeOffset(key) + GetAutoReferenceOffset(edge, from, to);
         var p1 = new Point(from.X + NodeWidth, from.Y + NodeHeight / 2d);
         var p2 = new Point(to.X, to.Y + NodeHeight / 2d);
         var clampedOffset = ClampEdgeOffset(offset, p1, p2);
@@ -146,6 +151,61 @@ public sealed partial class GraphCanvas
         return new Vector(
             Math.Clamp(offset.X, -maxX, maxX),
             Math.Clamp(offset.Y, -maxY, maxY));
+    }
+
+    private Vector GetAutoContainsOffset(ArchitectureEdge edge)
+    {
+        var siblings = Edges
+            .Where(e => e.Type == ArchitectureEdgeType.Contains &&
+                        string.Equals(e.FromNodeId, edge.FromNodeId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(e => e.ToNodeId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (siblings.Count <= 1)
+        {
+            return default;
+        }
+
+        var index = siblings.FindIndex(e =>
+            string.Equals(e.FromNodeId, edge.FromNodeId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(e.ToNodeId, edge.ToNodeId, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            return default;
+        }
+
+        var lane = index - ((siblings.Count - 1) / 2d);
+        return new Vector(lane * 18d, lane * 6d);
+    }
+
+    private Vector GetAutoReferenceOffset(ArchitectureEdge edge, ArchitectureNode from, ArchitectureNode to)
+    {
+        var outgoing = Edges
+            .Where(e => e.Type != ArchitectureEdgeType.Contains &&
+                        string.Equals(e.FromNodeId, edge.FromNodeId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(e => e.ToNodeId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var incoming = Edges
+            .Where(e => e.Type != ArchitectureEdgeType.Contains &&
+                        string.Equals(e.ToNodeId, edge.ToNodeId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(e => e.FromNodeId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var outgoingIndex = outgoing.FindIndex(e =>
+            string.Equals(e.FromNodeId, edge.FromNodeId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(e.ToNodeId, edge.ToNodeId, StringComparison.OrdinalIgnoreCase));
+        var incomingIndex = incoming.FindIndex(e =>
+            string.Equals(e.FromNodeId, edge.FromNodeId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(e.ToNodeId, edge.ToNodeId, StringComparison.OrdinalIgnoreCase));
+        if (outgoingIndex < 0 || incomingIndex < 0)
+        {
+            return default;
+        }
+
+        var outgoingLane = outgoingIndex - ((outgoing.Count - 1) / 2d);
+        var incomingLane = incomingIndex - ((incoming.Count - 1) / 2d);
+        var lane = outgoingLane + incomingLane;
+        var closeRangeFactor = Math.Abs(to.X - from.X) < 280d ? 1.2d : 0.55d;
+        return new Vector(lane * 10d * closeRangeFactor, lane * 16d);
     }
 
     private static bool TryHitSegment(Point point, IReadOnlyList<Point> points, double tolerance, out EdgeSegmentOrientation orientation)

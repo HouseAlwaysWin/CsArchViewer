@@ -84,6 +84,17 @@ public sealed partial class GraphCanvas
         return true;
     }
 
+    private static bool IsEdgeVisible(ArchitectureEdge edge)
+    {
+        if (edge.Metadata.TryGetValue("IsRelationVisible", out var value) &&
+            string.Equals(value, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private string BuildNodeDisplayName(ArchitectureNode node)
     {
         if (!ShowLineCountOnNodes || node.Type != ArchitectureNodeType.File)

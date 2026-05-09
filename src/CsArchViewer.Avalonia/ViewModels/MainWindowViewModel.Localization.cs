@@ -73,6 +73,7 @@ public sealed partial class MainWindowViewModel
     public string GroupByText => L("GroupBy");
     public string FitToScreenText => L("FitToScreen");
     public string ZoomToSelectionText => L("ZoomToSelection");
+    public string FocusNeighborhoodOnlyText => L("FocusNeighborhoodOnly");
     public string DependencyPathTabText => L("DependencyPathTab");
     public string DependencyPathSourceTextLabel => L("DependencyPathSource");
     public string DependencyPathTargetTextLabel => L("DependencyPathTarget");
@@ -170,6 +171,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(GroupByText));
         OnPropertyChanged(nameof(FitToScreenText));
         OnPropertyChanged(nameof(ZoomToSelectionText));
+        OnPropertyChanged(nameof(FocusNeighborhoodOnlyText));
         OnPropertyChanged(nameof(DependencyPathTabText));
         OnPropertyChanged(nameof(DependencyPathSourceTextLabel));
         OnPropertyChanged(nameof(DependencyPathTargetTextLabel));

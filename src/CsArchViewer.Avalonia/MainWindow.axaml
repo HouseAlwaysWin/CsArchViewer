@@ -80,6 +80,9 @@
                            Click="FitToScreen_OnClick" />
                    <Button Content="{Binding ZoomToSelectionText}"
                            Click="ZoomToSelection_OnClick" />
+                   <CheckBox VerticalAlignment="Center"
+                             Content="{Binding FocusNeighborhoodOnlyText}"
+                             IsChecked="{Binding ShowSelectedNodeNeighborhoodOnly, Mode=TwoWay}" />
                    <ComboBox Width="130"
                              ItemsSource="{Binding AvailableTypeFilters}"
                              SelectedItem="{Binding SelectedTypeFilter, Mode=TwoWay}" />

@@ -150,6 +150,11 @@ public sealed partial class GraphCanvas : Control
         var renderedEdges = new List<RenderedEdge>();
         foreach (var edge in Edges)
         {
+            if (!IsEdgeVisible(edge))
+            {
+                continue;
+            }
+
             var from = Nodes.FirstOrDefault(node => node.Id == edge.FromNodeId);
             var to = Nodes.FirstOrDefault(node => node.Id == edge.ToNodeId);
             if (from is null || to is null)

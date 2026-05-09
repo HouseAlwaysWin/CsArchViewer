@@ -88,26 +88,31 @@ public sealed partial class MainWindowViewModel
         GraphGroupingMode groupingMode,
         string layoutMode)
     {
+        var appliedStored = false;
         if (string.Equals(layoutMode, "Auto", StringComparison.OrdinalIgnoreCase))
         {
-            TryApplyStoredGraphLayout(graph, graphType, groupingMode, layoutMode);
-            return;
+            appliedStored = TryApplyStoredGraphLayout(graph, graphType, groupingMode, layoutMode);
+        }
+        else if (TryApplyStoredGraphLayout(graph, graphType, groupingMode, layoutMode))
+        {
+            appliedStored = true;
+        }
+        else
+        {
+            switch (layoutMode)
+            {
+                case "Tree":
+                    ApplyTreeLayout(graph);
+                    break;
+                case "Layered":
+                    ApplyLayeredLayout(graph);
+                    break;
+            }
         }
 
-        if (TryApplyStoredGraphLayout(graph, graphType, groupingMode, layoutMode))
-        {
-            return;
-        }
-
-        switch (layoutMode)
-        {
-            case "Tree":
-                ApplyTreeLayout(graph);
-                break;
-            case "Layered":
-                ApplyLayeredLayout(graph);
-                break;
-        }
+        // Run a lightweight post-pass for all layout modes to avoid
+        // node rectangle overlap while preserving the original structure.
+        ResolveNodeOverlaps(graph, keepCurrentOrder: appliedStored);
     }
 
     private bool TryApplyStoredGraphLayout(
@@ -249,5 +254,65 @@ public sealed partial class MainWindowViewModel
     private static string BuildGraphLayoutKey(GraphType graphType, GraphGroupingMode groupingMode, string layoutMode)
     {
         return $"{graphType}|{groupingMode}|{layoutMode}";
+    }
+
+    private static void ResolveNodeOverlaps(ArchitectureGraph graph, bool keepCurrentOrder)
+    {
+        const double nodeWidth = 180d;
+        const double nodeHeight = 72d;
+        const double horizontalGap = 26d;
+        const double verticalGap = 24d;
+
+        var nodes = keepCurrentOrder
+            ? graph.Nodes.OrderBy(n => n.Y).ThenBy(n => n.X).ToList()
+            : graph.Nodes.OrderBy(n => n.X).ThenBy(n => n.Y).ToList();
+        if (nodes.Count <= 1)
+        {
+            return;
+        }
+
+        for (var pass = 0; pass < 8; pass++)
+        {
+            var changed = false;
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                for (var j = i + 1; j < nodes.Count; j++)
+                {
+                    var a = nodes[i];
+                    var b = nodes[j];
+                    var centerAX = a.X + (nodeWidth / 2d);
+                    var centerAY = a.Y + (nodeHeight / 2d);
+                    var centerBX = b.X + (nodeWidth / 2d);
+                    var centerBY = b.Y + (nodeHeight / 2d);
+                    var deltaX = centerBX - centerAX;
+                    var deltaY = centerBY - centerAY;
+                    var overlapX = ((nodeWidth + horizontalGap) - Math.Abs(deltaX));
+                    var overlapY = ((nodeHeight + verticalGap) - Math.Abs(deltaY));
+                    if (overlapX <= 0 || overlapY <= 0)
+                    {
+                        continue;
+                    }
+
+                    changed = true;
+                    if (overlapX >= overlapY)
+                    {
+                        var directionY = deltaY >= 0 ? 1d : -1d;
+                        b.Y += overlapY * directionY;
+                    }
+                    else
+                    {
+                        var directionX = deltaX >= 0 ? 1d : -1d;
+                        b.X += overlapX * directionX;
+                    }
+                }
+            }
+
+            if (!changed)
+            {
+                break;
+            }
+
+            nodes = nodes.OrderBy(n => n.Y).ThenBy(n => n.X).ToList();
+        }
     }
 }

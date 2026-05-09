@@ -53,6 +53,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private string _topStatus = string.Empty;
     private string _selectedLanguage = "繁體中文";
     private string _selectedOverlayMode = "None";
+    private bool _showSelectedNodeNeighborhoodOnly;
     private string _selectedMetricsFilter = "All";
     private string _selectedTheme = "Dark";
     private string _selectedGraphLayout = "Auto";
@@ -216,6 +217,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             {
                 ApplyMetricsOverlay();
                 Graph.Touch();
+            }
+        }
+    }
+
+    public bool ShowSelectedNodeNeighborhoodOnly
+    {
+        get => _showSelectedNodeNeighborhoodOnly;
+        set
+        {
+            if (SetProperty(ref _showSelectedNodeNeighborhoodOnly, value))
+            {
+                ApplyFilters();
             }
         }
     }
@@ -498,6 +511,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         Graph.SelectedNode = node;
         DependencyPathSourceText = node?.Name ?? "-";
+        ApplyFilters();
         if (node is null)
         {
             NodeDetails.SetNode(null, null);

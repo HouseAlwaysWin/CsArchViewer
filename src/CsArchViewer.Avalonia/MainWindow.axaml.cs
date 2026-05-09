@@ -139,6 +139,7 @@ public partial class MainWindow : Window
             or nameof(MainWindowViewModel.SelectedTypeFilter)
             or nameof(MainWindowViewModel.SelectedMetricsFilter)
             or nameof(MainWindowViewModel.SelectedOverlayMode)
+            or nameof(MainWindowViewModel.ShowSelectedNodeNeighborhoodOnly)
             or nameof(MainWindowViewModel.SelectedDiagnosticsSeverityFilter)
             or nameof(MainWindowViewModel.SelectedLanguage)
             or nameof(MainWindowViewModel.SelectedTheme)
