@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using CsArchViewer.Avalonia.ViewModels;
 using CsArchViewer.DotNet.SymbolExplorer.Models;
 
 namespace CsArchViewer.Avalonia;
@@ -51,6 +52,7 @@ public partial class MainWindow
             ViewModel.ExplorerTypeMembersSummary = string.Empty;
             ViewModel.ExplorerMethodMetadataText = string.Empty;
             ViewModel.ExplorerTypeMethods.Clear();
+            ViewModel.ExplorerTypeProperties.Clear();
             return;
         }
 
@@ -65,6 +67,7 @@ public partial class MainWindow
         ViewModel.ExplorerTypeMembersSummary = string.Empty;
         ViewModel.ExplorerMethodMetadataText = string.Empty;
         ViewModel.ExplorerTypeMethods.Clear();
+        ViewModel.ExplorerTypeProperties.Clear();
 
         var solution = _symbolIndexBuilder.CurrentSolution;
         if (solution is null)
@@ -136,6 +139,7 @@ public partial class MainWindow
     private void ApplyTypeAnalysis(TypeInfoModel? typeModel)
     {
         ViewModel.ExplorerTypeMethods.Clear();
+        ViewModel.ExplorerTypeProperties.Clear();
         if (typeModel is null)
         {
             ViewModel.ExplorerTypeTitle = string.Empty;
@@ -146,7 +150,7 @@ public partial class MainWindow
         ViewModel.ExplorerTypeTitle = typeModel.FullName;
         var sb = new StringBuilder();
         sb.AppendLine($"Kind: {typeModel.Kind}");
-        sb.AppendLine($"{ViewModel.BaseTypeText}: {(string.IsNullOrWhiteSpace(typeModel.BaseType) ? "-" : typeModel.BaseType)}");
+        sb.AppendLine($"{ViewModel.BaseTypeText}: {(string.IsNullOrWhiteSpace(typeModel.BaseType) ? "System.Object" : typeModel.BaseType)}");
         if (typeModel.Interfaces.Count > 0)
         {
             sb.AppendLine($"{ViewModel.ImplementedInterfacesText}:");
@@ -163,9 +167,12 @@ public partial class MainWindow
 
         if (typeModel.Properties.Count > 0)
         {
-            sb.AppendLine($"Properties ({typeModel.Properties.Count}): " +
-                          string.Join(", ", typeModel.Properties.Take(12)) +
-                          (typeModel.Properties.Count > 12 ? "…" : string.Empty));
+            sb.AppendLine($"Properties ({typeModel.Properties.Count}):");
+            foreach (var property in typeModel.Properties)
+            {
+                var item = ParsePropertyDisplayItem(property);
+                ViewModel.ExplorerTypeProperties.Add(item);
+            }
         }
 
         if (typeModel.Fields.Count > 0)
@@ -199,6 +206,34 @@ public partial class MainWindow
         {
             ViewModel.ExplorerTypeMethods.Add(method);
         }
+    }
+
+    private static ExplorerPropertyDisplayItem ParsePropertyDisplayItem(string property)
+    {
+        if (string.IsNullOrWhiteSpace(property))
+        {
+            return new ExplorerPropertyDisplayItem { Name = "(unknown)", Type = "(unknown)" };
+        }
+
+        var trimmed = property.Trim();
+        var separator = trimmed.LastIndexOf(' ');
+        if (separator <= 0 || separator >= trimmed.Length - 1)
+        {
+            return new ExplorerPropertyDisplayItem { Name = trimmed, Type = "(unknown)" };
+        }
+
+        var typeName = trimmed[..separator].Trim();
+        var rawName = trimmed[(separator + 1)..].Trim();
+        var dotIndex = rawName.LastIndexOf('.');
+        var propertyName = dotIndex >= 0 && dotIndex < rawName.Length - 1
+            ? rawName[(dotIndex + 1)..]
+            : rawName;
+
+        return new ExplorerPropertyDisplayItem
+        {
+            Name = propertyName,
+            Type = typeName
+        };
     }
 
     private void ExplorerMethods_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)

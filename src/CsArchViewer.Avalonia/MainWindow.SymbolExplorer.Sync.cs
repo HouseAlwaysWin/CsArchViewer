@@ -166,6 +166,7 @@ public partial class MainWindow
             ViewModel.ExplorerTypeMembersSummary = string.Empty;
             ViewModel.ExplorerMethodMetadataText = string.Empty;
             ViewModel.ExplorerTypeMethods.Clear();
+            ViewModel.ExplorerTypeProperties.Clear();
         }
 
         ViewModel.Status = symbols.Count == 0

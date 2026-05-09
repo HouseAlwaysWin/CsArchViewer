@@ -94,6 +94,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<SymbolInfoModel> SymbolExplorerResults { get; } = [];
     public ObservableCollection<ReferenceInfoModel> ExplorerReferences { get; } = [];
     public ObservableCollection<MethodInfoModel> ExplorerTypeMethods { get; } = [];
+    public ObservableCollection<ExplorerPropertyDisplayItem> ExplorerTypeProperties { get; } = [];
     public ObservableCollection<string> RecentSearches { get; } = [];
     public ObservableCollection<string> RecentSymbolSearches { get; } = [];
     public ObservableCollection<AppLogEntry> LogEntries { get; } = [];
@@ -482,6 +483,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SymbolExplorerResults.Clear();
         ExplorerReferences.Clear();
         ExplorerTypeMethods.Clear();
+        ExplorerTypeProperties.Clear();
         SelectedExplorerSymbol = null;
         SelectedExplorerMethod = null;
         SelectedExplorerReference = null;

@@ -260,6 +260,24 @@
                                  LineHeight="17"
                                  Foreground="{DynamicResource AppTertiaryTextBrush}" />
                       </Border>
+                      <ListBox MaxHeight="160"
+                               ItemsSource="{Binding ExplorerTypeProperties}">
+                        <ListBox.ItemTemplate>
+                          <DataTemplate x:DataType="vm:ExplorerPropertyDisplayItem">
+                            <TextBlock FontFamily="Consolas"
+                                       FontSize="11">
+                              <Run Text="· "
+                                   Foreground="#64748B" />
+                              <Run Text="{Binding Name}"
+                                   Foreground="#F8FAFC" />
+                              <Run Text=" : "
+                                   Foreground="#64748B" />
+                              <Run Text="{Binding Type}"
+                                   Foreground="#38BDF8" />
+                            </TextBlock>
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
                       <ListBox Height="220"
                                ItemsSource="{Binding ExplorerTypeMethods}"
                                SelectedItem="{Binding SelectedExplorerMethod, Mode=TwoWay}"
