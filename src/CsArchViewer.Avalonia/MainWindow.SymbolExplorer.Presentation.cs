@@ -45,6 +45,8 @@ public partial class MainWindow
 
         if (box.SelectedItem is not SymbolInfoModel sym)
         {
+            ViewModel.ExplorerSymbolTitle = string.Empty;
+            ViewModel.ExplorerTypeTitle = string.Empty;
             ViewModel.ExplorerSymbolDetailsText = string.Empty;
             ViewModel.ExplorerTypeMembersSummary = string.Empty;
             ViewModel.ExplorerMethodMetadataText = string.Empty;
@@ -57,7 +59,9 @@ public partial class MainWindow
 
     private async Task RefreshExplorerSymbolAsync(SymbolInfoModel sym)
     {
+        ViewModel.ExplorerSymbolTitle = sym.DisplayName;
         ViewModel.ExplorerSymbolDetailsText = FormatSymbolDetails(sym);
+        ViewModel.ExplorerTypeTitle = string.Empty;
         ViewModel.ExplorerTypeMembersSummary = string.Empty;
         ViewModel.ExplorerMethodMetadataText = string.Empty;
         ViewModel.ExplorerTypeMethods.Clear();
@@ -93,7 +97,6 @@ public partial class MainWindow
     private static string FormatSymbolDetails(SymbolInfoModel sym)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"{sym.DisplayName}");
         sb.AppendLine($"Kind: {sym.Kind}");
         sb.AppendLine($"Namespace: {sym.Namespace}");
         sb.AppendLine($"Accessibility: {sym.Accessibility}");
@@ -102,8 +105,6 @@ public partial class MainWindow
             sb.AppendLine($"Containing type: {sym.ContainingTypeName}");
         }
 
-        sb.AppendLine($"File: {sym.FilePath}");
-        sb.AppendLine($"Line: {sym.LineNumber}");
         return sb.ToString().TrimEnd();
     }
 
@@ -137,12 +138,13 @@ public partial class MainWindow
         ViewModel.ExplorerTypeMethods.Clear();
         if (typeModel is null)
         {
+            ViewModel.ExplorerTypeTitle = string.Empty;
             ViewModel.ExplorerTypeMembersSummary = string.Empty;
             return;
         }
 
+        ViewModel.ExplorerTypeTitle = typeModel.FullName;
         var sb = new StringBuilder();
-        sb.AppendLine(typeModel.FullName);
         sb.AppendLine($"Kind: {typeModel.Kind}");
         sb.AppendLine($"{ViewModel.BaseTypeText}: {(string.IsNullOrWhiteSpace(typeModel.BaseType) ? "-" : typeModel.BaseType)}");
         if (typeModel.Interfaces.Count > 0)
@@ -158,8 +160,6 @@ public partial class MainWindow
                 sb.AppendLine($"  … ({typeModel.Interfaces.Count - 15} more)");
             }
         }
-
-        sb.AppendLine($"{ViewModel.FileText}: {typeModel.FilePath} ({typeModel.LineNumber})");
 
         if (typeModel.Properties.Count > 0)
         {
@@ -178,6 +178,20 @@ public partial class MainWindow
         if (typeModel.Events.Count > 0)
         {
             sb.AppendLine($"Events ({typeModel.Events.Count}): " + string.Join(", ", typeModel.Events.Take(12)));
+        }
+
+        if (typeModel.Methods.Count > 0)
+        {
+            sb.AppendLine($"Methods ({typeModel.Methods.Count}):");
+            foreach (var method in typeModel.Methods.Take(12))
+            {
+                sb.AppendLine($"  · {method.Name}({method.ParameterCount}) : {method.ReturnType}");
+            }
+
+            if (typeModel.Methods.Count > 12)
+            {
+                sb.AppendLine($"  … ({typeModel.Methods.Count - 12} more)");
+            }
         }
 
         ViewModel.ExplorerTypeMembersSummary = sb.ToString().TrimEnd();

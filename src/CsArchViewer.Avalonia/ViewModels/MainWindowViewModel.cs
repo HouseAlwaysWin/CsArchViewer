@@ -68,6 +68,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private SymbolInfoModel? _selectedExplorerSymbol;
     private MethodInfoModel? _selectedExplorerMethod;
     private ReferenceInfoModel? _selectedExplorerReference;
+    private string _explorerSymbolTitle = string.Empty;
+    private string _explorerTypeTitle = string.Empty;
     private string _explorerSymbolDetailsText = string.Empty;
     private string _explorerMethodMetadataText = string.Empty;
     private string _explorerTypeMembersSummary = string.Empty;
@@ -336,6 +338,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _explorerSymbolDetailsText, value);
     }
 
+    public string ExplorerSymbolTitle
+    {
+        get => _explorerSymbolTitle;
+        set => SetProperty(ref _explorerSymbolTitle, value);
+    }
+
+    public string ExplorerTypeTitle
+    {
+        get => _explorerTypeTitle;
+        set => SetProperty(ref _explorerTypeTitle, value);
+    }
+
     public string ExplorerMethodMetadataText
     {
         get => _explorerMethodMetadataText;
@@ -471,6 +485,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SelectedExplorerSymbol = null;
         SelectedExplorerMethod = null;
         SelectedExplorerReference = null;
+        ExplorerSymbolTitle = string.Empty;
+        ExplorerTypeTitle = string.Empty;
         ExplorerSymbolDetailsText = string.Empty;
         ExplorerMethodMetadataText = string.Empty;
         ExplorerTypeMembersSummary = string.Empty;

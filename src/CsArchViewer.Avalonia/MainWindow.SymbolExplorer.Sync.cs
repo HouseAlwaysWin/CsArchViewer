@@ -160,6 +160,8 @@ public partial class MainWindow
         }
         else
         {
+            ViewModel.ExplorerSymbolTitle = string.Empty;
+            ViewModel.ExplorerTypeTitle = string.Empty;
             ViewModel.ExplorerSymbolDetailsText = string.Empty;
             ViewModel.ExplorerTypeMembersSummary = string.Empty;
             ViewModel.ExplorerMethodMetadataText = string.Empty;

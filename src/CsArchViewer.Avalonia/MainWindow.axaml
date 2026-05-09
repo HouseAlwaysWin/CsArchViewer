@@ -18,6 +18,7 @@
         Icon="/Assets/Icons/logo-mark.png">
   <Window.Resources>
     <conv:DiagnosticSeverityBrushConverter x:Key="DiagnosticSeverityBrushConverter" />
+    <conv:ExplorerSymbolKindBrushConverter x:Key="ExplorerSymbolKindBrushConverter" />
   </Window.Resources>
   <DockPanel>
     <TabControl Margin="0"
@@ -157,7 +158,10 @@
                         <DataTemplate x:DataType="symexp:SymbolInfoModel">
                           <StackPanel Margin="2">
                             <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
-                            <TextBlock FontSize="11" Foreground="{DynamicResource AppTertiaryTextBrush}" Text="{Binding Kind}" />
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding Kind, Converter={StaticResource ExplorerSymbolKindBrushConverter}}"
+                                       Text="{Binding Kind}" />
                             <TextBlock FontSize="10" Foreground="{DynamicResource AppQuaternaryTextBrush}" Text="{Binding Namespace}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                         </DataTemplate>
@@ -203,41 +207,103 @@
                                 Click="SymbolExplorerFindRefs_OnClick" />
                         <Button Content="{Binding SymbolExplorerGoToDefText}"
                                 Click="SymbolExplorerGoToDef_OnClick" />
+                        <Border Padding="8,2"
+                                CornerRadius="999"
+                                BorderThickness="1"
+                                BorderBrush="{Binding SelectedExplorerSymbol.Kind, Converter={StaticResource ExplorerSymbolKindBrushConverter}}">
+                          <TextBlock FontWeight="SemiBold"
+                                     Foreground="{Binding SelectedExplorerSymbol.Kind, Converter={StaticResource ExplorerSymbolKindBrushConverter}}"
+                                     Text="{Binding SelectedExplorerSymbol.Kind}" />
+                        </Border>
                       </StackPanel>
-                      <TextBlock Text="{Binding ExplorerSymbolDetailsText}"
+                      <TextBlock FontWeight="SemiBold"
+                                 FontSize="14"
+                                 Foreground="{Binding SelectedExplorerSymbol.Kind, Converter={StaticResource ExplorerSymbolKindBrushConverter}}"
+                                 Text="{Binding ExplorerSymbolTitle}" />
+                      <Border Padding="10"
+                              CornerRadius="6"
+                              BorderBrush="{DynamicResource AppBorderBrush}"
+                              BorderThickness="1"
+                              Background="{DynamicResource AppSurfaceAltBackgroundBrush}">
+                        <TextBox IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Text="{Binding ExplorerSymbolDetailsText}"
                                  TextWrapping="Wrap"
+                                 FontFamily="Consolas"
+                                 FontSize="12"
+                                 LineHeight="18"
                                  Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                      <Separator Background="{DynamicResource AppBorderBrush}" />
+                      </Border>
+                      <Separator Background="{DynamicResource AppBorderBrush}"
+                                 Margin="0,2,0,2" />
                       <TextBlock FontWeight="Bold"
                                  Text="{Binding SymbolExplorerTypeMembersTitleText}" />
-                      <TextBlock Text="{Binding ExplorerTypeMembersSummary}"
+                      <TextBlock FontWeight="SemiBold"
+                                 FontSize="13"
+                                 Foreground="{Binding SelectedExplorerSymbol.Kind, Converter={StaticResource ExplorerSymbolKindBrushConverter}}"
+                                 Text="{Binding ExplorerTypeTitle}" />
+                      <Border Padding="10"
+                              CornerRadius="6"
+                              BorderBrush="{DynamicResource AppBorderBrush}"
+                              BorderThickness="1"
+                              Background="{DynamicResource AppSurfaceAltBackgroundBrush}">
+                        <TextBox IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Text="{Binding ExplorerTypeMembersSummary}"
                                  TextWrapping="Wrap"
+                                 FontFamily="Consolas"
                                  FontSize="11"
+                                 LineHeight="17"
                                  Foreground="{DynamicResource AppTertiaryTextBrush}" />
+                      </Border>
                       <ListBox Height="220"
                                ItemsSource="{Binding ExplorerTypeMethods}"
                                SelectedItem="{Binding SelectedExplorerMethod, Mode=TwoWay}"
                                SelectionChanged="ExplorerMethods_OnSelectionChanged">
                         <ListBox.ItemTemplate>
                           <DataTemplate x:DataType="symexp:MethodInfoModel">
-                            <StackPanel Margin="2">
-                              <TextBlock FontWeight="SemiBold"
+                            <StackPanel Margin="2"
+                                        Spacing="2">
+                              <TextBlock FontWeight="SemiBold">
+                                <Run Text="{Binding Name}"
+                                     Foreground="#F8FAFC" />
+                                <Run Text=" : "
+                                     Foreground="#64748B" />
+                                <Run Text="{Binding ReturnType}"
+                                     Foreground="#F59E0B" />
+                              </TextBlock>
+                              <TextBlock FontSize="11"
+                                         Foreground="{DynamicResource AppTertiaryTextBrush}"
                                          Text="{Binding Signature}"
                                          TextWrapping="Wrap" />
                               <TextBlock FontSize="10"
                                          Foreground="{DynamicResource AppQuaternaryTextBrush}"
-                                         Text="{Binding FilePath}"
-                                         TextTrimming="CharacterEllipsis" />
+                                         Text="{Binding Accessibility}" />
                             </StackPanel>
                           </DataTemplate>
                         </ListBox.ItemTemplate>
                       </ListBox>
                       <TextBlock FontWeight="Bold"
                                  Text="{Binding SymbolExplorerMethodMetaTitleText}" />
-                      <TextBlock Text="{Binding ExplorerMethodMetadataText}"
+                      <Border Padding="10"
+                              CornerRadius="6"
+                              BorderBrush="{DynamicResource AppBorderBrush}"
+                              BorderThickness="1"
+                              Background="{DynamicResource AppSurfaceAltBackgroundBrush}">
+                        <TextBox IsReadOnly="True"
+                                 IsHitTestVisible="False"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Text="{Binding ExplorerMethodMetadataText}"
                                  TextWrapping="Wrap"
                                  FontFamily="Consolas"
-                                 FontSize="11" />
+                                 FontSize="11"
+                                 LineHeight="17" />
+                      </Border>
                     </StackPanel>
                   </ScrollViewer>
                 </TabItem>
