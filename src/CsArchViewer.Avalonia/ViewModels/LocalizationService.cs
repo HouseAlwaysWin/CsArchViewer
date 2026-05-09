@@ -8,6 +8,7 @@ public sealed class LocalizationService
         {
             ["WorkspaceTab"] = "工作區",
             ["SettingsTab"] = "設定",
+            ["UpdatesTab"] = "更新",
             ["OpenFolder"] = "開啟資料夾",
             ["Reload"] = "重新載入",
             ["Export"] = "匯出",
@@ -119,12 +120,27 @@ public sealed class LocalizationService
             ["RestoreLastSession"] = "啟動時還原上次工作區",
             ["AutoSaveSession"] = "自動儲存工作區",
             ["Theme"] = "主題",
-            ["GraphLayout"] = "圖表版面"
+            ["GraphLayout"] = "圖表版面",
+            ["CurrentVersion"] = "目前版本",
+            ["AvailableVersions"] = "可用版本",
+            ["RefreshVersions"] = "重新整理版本",
+            ["SwitchVersion"] = "切換版本",
+            ["UpdateHint"] = "切換版本會下載你選取的版本，下載完成後請關閉並重新啟動程式。",
+            ["UpdateStatusIdle"] = "請先重新整理版本清單。",
+            ["UpdateStatusLoading"] = "正在讀取版本清單...",
+            ["UpdateStatusNoRelease"] = "找不到可用版本。",
+            ["UpdateStatusLoadedTemplate"] = "已載入 {0} 個版本。",
+            ["UpdateStatusLoadFailedTemplate"] = "讀取版本失敗: {0}",
+            ["UpdateStatusNoVersionSelected"] = "請先選擇要切換的版本。",
+            ["UpdateStatusAlreadyCurrent"] = "已是目前版本。",
+            ["UpdateStatusSwitchStartedTemplate"] = "已開始切換到 {0}。下載完成後請重啟程式。",
+            ["UpdateStatusSwitchFailedTemplate"] = "切換版本失敗: {0}"
         },
         ["en-US"] = new(StringComparer.OrdinalIgnoreCase)
         {
             ["WorkspaceTab"] = "Workspace",
             ["SettingsTab"] = "Settings",
+            ["UpdatesTab"] = "Updates",
             ["OpenFolder"] = "Open Folder",
             ["Reload"] = "Reload",
             ["Export"] = "Export",
@@ -236,7 +252,21 @@ public sealed class LocalizationService
             ["RestoreLastSession"] = "Restore last workspace on startup",
             ["AutoSaveSession"] = "Auto-save workspace",
             ["Theme"] = "Theme",
-            ["GraphLayout"] = "Graph Layout"
+            ["GraphLayout"] = "Graph Layout",
+            ["CurrentVersion"] = "Current Version",
+            ["AvailableVersions"] = "Available Versions",
+            ["RefreshVersions"] = "Refresh Versions",
+            ["SwitchVersion"] = "Switch Version",
+            ["UpdateHint"] = "Switching version downloads the selected package. Restart the app after download.",
+            ["UpdateStatusIdle"] = "Refresh to load available versions.",
+            ["UpdateStatusLoading"] = "Loading available versions...",
+            ["UpdateStatusNoRelease"] = "No available releases found.",
+            ["UpdateStatusLoadedTemplate"] = "Loaded {0} versions.",
+            ["UpdateStatusLoadFailedTemplate"] = "Failed to load versions: {0}",
+            ["UpdateStatusNoVersionSelected"] = "Select a target version first.",
+            ["UpdateStatusAlreadyCurrent"] = "Already on current version.",
+            ["UpdateStatusSwitchStartedTemplate"] = "Switching to {0}. Restart the app after download.",
+            ["UpdateStatusSwitchFailedTemplate"] = "Failed to switch version: {0}"
         }
     };
 

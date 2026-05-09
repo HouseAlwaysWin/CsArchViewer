@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -28,6 +31,9 @@ namespace CsArchViewer.Avalonia;
 
 public partial class MainWindow : Window
 {
+    private const string UpdateRepoOwner = "martin951";
+    private const string UpdateRepoName = "CsArchViewer";
+    private static readonly HttpClient UpdateHttpClient = CreateUpdateHttpClient();
     private GridLength _lastDiagnosticsHeight = new(180);
 
     private readonly RoslynSolutionLoader _roslynSolutionLoader = new();
@@ -262,6 +268,41 @@ public partial class MainWindow : Window
         await LoadAsync(ViewModel.CurrentRootPath);
     }
 
+    private async void RefreshVersions_OnClick(object? sender, RoutedEventArgs e)
+    {
+        await RefreshVersionsAsync();
+    }
+
+    private void SwitchVersion_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var target = ViewModel.SelectedUpdateVersion;
+        if (target is null)
+        {
+            ViewModel.UpdateStatusText = ViewModel.L("UpdateStatusNoVersionSelected");
+            return;
+        }
+
+        if (string.Equals(target.VersionTag, ViewModel.CurrentAppVersion, StringComparison.OrdinalIgnoreCase))
+        {
+            ViewModel.UpdateStatusText = ViewModel.L("UpdateStatusAlreadyCurrent");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = target.DownloadUrl,
+                UseShellExecute = true
+            });
+            ViewModel.UpdateStatusText = string.Format(ViewModel.L("UpdateStatusSwitchStartedTemplate"), target.VersionTag);
+        }
+        catch (Exception ex)
+        {
+            ViewModel.UpdateStatusText = string.Format(ViewModel.L("UpdateStatusSwitchFailedTemplate"), ex.Message);
+        }
+    }
+
     private async Task LoadAsync(string rootPath)
     {
         ViewModel.CurrentRootPath = rootPath;
@@ -271,6 +312,62 @@ public partial class MainWindow : Window
         QueueAnalysis(rootPath, null, AnalysisPriority.High, ViewModel.L("RunningFullAnalysis"));
         SchedulePersistWorkspaceState();
         await Task.CompletedTask;
+    }
+
+    private async Task RefreshVersionsAsync()
+    {
+        if (ViewModel.IsCheckingUpdates)
+        {
+            return;
+        }
+
+        ViewModel.IsCheckingUpdates = true;
+        ViewModel.UpdateStatusText = ViewModel.L("UpdateStatusLoading");
+        try
+        {
+            var api = $"https://api.github.com/repos/{UpdateRepoOwner}/{UpdateRepoName}/releases?per_page=30";
+            using var response = await UpdateHttpClient.GetAsync(api).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            var releases = await JsonSerializer.DeserializeAsync<List<GitHubReleaseDto>>(stream).ConfigureAwait(false) ?? [];
+
+            var versions = releases
+                .Where(r => !string.IsNullOrWhiteSpace(r.TagName))
+                .Select(r =>
+                {
+                    var bestAsset = r.Assets?
+                        .FirstOrDefault(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ??
+                                    r.Assets?.FirstOrDefault();
+                    var downloadUrl = bestAsset?.BrowserDownloadUrl ?? r.HtmlUrl;
+                    return new UpdateVersionItem
+                    {
+                        VersionTag = r.TagName,
+                        PublishedAt = r.PublishedAt ?? DateTimeOffset.MinValue,
+                        DownloadUrl = downloadUrl,
+                        NotesUrl = r.HtmlUrl,
+                        IsPrerelease = r.Prerelease
+                    };
+                })
+                .Where(v => !string.IsNullOrWhiteSpace(v.DownloadUrl))
+                .OrderByDescending(v => v.PublishedAt)
+                .ToList();
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                ViewModel.SetUpdateVersions(versions);
+                ViewModel.UpdateStatusText = versions.Count == 0
+                    ? ViewModel.L("UpdateStatusNoRelease")
+                    : string.Format(ViewModel.L("UpdateStatusLoadedTemplate"), versions.Count);
+            });
+        }
+        catch (Exception ex)
+        {
+            ViewModel.UpdateStatusText = string.Format(ViewModel.L("UpdateStatusLoadFailedTemplate"), ex.Message);
+        }
+        finally
+        {
+            ViewModel.IsCheckingUpdates = false;
+        }
     }
 
     private async Task RestoreWorkspaceStateAsync()
@@ -611,5 +708,40 @@ public partial class MainWindow : Window
         _analyzer.Dispose();
         _roslynSolutionLoader.Dispose();
         base.OnClosed(e);
+    }
+
+    private static HttpClient CreateUpdateHttpClient()
+    {
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("CsArchViewer/1.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return client;
+    }
+
+    private sealed class GitHubReleaseDto
+    {
+        [JsonPropertyName("tag_name")]
+        public string TagName { get; set; } = string.Empty;
+
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; set; }
+
+        [JsonPropertyName("html_url")]
+        public string HtmlUrl { get; set; } = string.Empty;
+
+        [JsonPropertyName("published_at")]
+        public DateTimeOffset? PublishedAt { get; set; }
+
+        [JsonPropertyName("assets")]
+        public List<GitHubAssetDto>? Assets { get; set; }
+    }
+
+    private sealed class GitHubAssetDto
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("browser_download_url")]
+        public string BrowserDownloadUrl { get; set; } = string.Empty;
     }
 }

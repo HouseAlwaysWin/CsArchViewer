@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Reflection;
 using CsArchViewer.Analysis;
 using CsArchViewer.Core.Models;
 using CsArchViewer.Diagnostics;
@@ -84,6 +85,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private bool _autoSaveSession = true;
     private PerformanceSnapshot? _lastPerformanceSnapshot;
     private ArchitectureGraph? _activeGraph;
+    private UpdateVersionItem? _selectedUpdateVersion;
+    private bool _isCheckingUpdates;
+    private string _updateStatusText = string.Empty;
     private readonly Dictionary<string, Dictionary<string, NodeLayoutState>> _persistedGraphLayouts =
         new(StringComparer.OrdinalIgnoreCase);
 
@@ -102,6 +106,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<string> RecentSymbolSearches { get; } = [];
     public ObservableCollection<AppLogEntry> LogEntries { get; } = [];
     public ObservableCollection<string> DependencyPathSteps { get; } = [];
+    public ObservableCollection<UpdateVersionItem> AvailableUpdateVersions { get; } = [];
     public GraphViewModel Graph { get; } = new();
     public NodeDetailsViewModel NodeDetails { get; } = new();
     public IReadOnlyList<string> AvailableTypeFilters => TypeFilterOptions;
@@ -119,7 +124,40 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _localization.LanguageChanged += HandleLanguageChanged;
         Status = L("StatusIdle");
         AnalysisStatus = L("StatusIdleShort");
+        CurrentAppVersion = ResolveCurrentVersion();
+        UpdateStatusText = L("UpdateStatusIdle");
         UpdateTopStatus();
+    }
+
+    public string CurrentAppVersion { get; }
+
+    public UpdateVersionItem? SelectedUpdateVersion
+    {
+        get => _selectedUpdateVersion;
+        set => SetProperty(ref _selectedUpdateVersion, value);
+    }
+
+    public bool IsCheckingUpdates
+    {
+        get => _isCheckingUpdates;
+        set => SetProperty(ref _isCheckingUpdates, value);
+    }
+
+    public string UpdateStatusText
+    {
+        get => _updateStatusText;
+        set => SetProperty(ref _updateStatusText, value);
+    }
+
+    public void SetUpdateVersions(IEnumerable<UpdateVersionItem> versions)
+    {
+        AvailableUpdateVersions.Clear();
+        foreach (var version in versions)
+        {
+            AvailableUpdateVersions.Add(version);
+        }
+
+        SelectedUpdateVersion = AvailableUpdateVersions.FirstOrDefault();
     }
 
     public string SearchText
@@ -593,5 +631,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public ArchitectureGraph? GetCurrentGraph()
     {
         return _activeGraph;
+    }
+
+    private static string ResolveCurrentVersion()
+    {
+        var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informational = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            return informational;
+        }
+
+        return asm.GetName().Version?.ToString() ?? "0.0.0";
     }
 }

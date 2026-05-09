@@ -4,6 +4,7 @@ public sealed partial class MainWindowViewModel
 {
     public string WorkspaceTabText => L("WorkspaceTab");
     public string SettingsTabText => L("SettingsTab");
+    public string UpdatesTabText => L("UpdatesTab");
     public string OpenFolderText => L("OpenFolder");
     public string ReloadText => L("Reload");
     public string ExportText => L("Export");
@@ -91,6 +92,11 @@ public sealed partial class MainWindowViewModel
     public string AutoSaveSessionText => L("AutoSaveSession");
     public string ThemeText => L("Theme");
     public string GraphLayoutText => L("GraphLayout");
+    public string CurrentVersionText => L("CurrentVersion");
+    public string AvailableVersionsText => L("AvailableVersions");
+    public string RefreshVersionsText => L("RefreshVersions");
+    public string SwitchVersionText => L("SwitchVersion");
+    public string UpdateHintText => L("UpdateHint");
 
     public int MetricsTotalLoc => _metricsSummary?.TotalLoc ?? 0;
     public int MetricsTotalFiles => _metricsSummary?.TotalFiles ?? 0;
@@ -105,6 +111,7 @@ public sealed partial class MainWindowViewModel
     {
         OnPropertyChanged(nameof(WorkspaceTabText));
         OnPropertyChanged(nameof(SettingsTabText));
+        OnPropertyChanged(nameof(UpdatesTabText));
         OnPropertyChanged(nameof(OpenFolderText));
         OnPropertyChanged(nameof(ReloadText));
         OnPropertyChanged(nameof(ExportText));
@@ -193,6 +200,11 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(AutoSaveSessionText));
         OnPropertyChanged(nameof(ThemeText));
         OnPropertyChanged(nameof(GraphLayoutText));
+        OnPropertyChanged(nameof(CurrentVersionText));
+        OnPropertyChanged(nameof(AvailableVersionsText));
+        OnPropertyChanged(nameof(RefreshVersionsText));
+        OnPropertyChanged(nameof(SwitchVersionText));
+        OnPropertyChanged(nameof(UpdateHintText));
         OnPropertyChanged(nameof(MetricsTotalLoc));
         OnPropertyChanged(nameof(MetricsTotalFiles));
         OnPropertyChanged(nameof(MetricsLargestFile));
