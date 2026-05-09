@@ -59,6 +59,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private string _selectedGraphLayout = "Auto";
     private string _selectedDiagnosticsSeverityFilter = "All";
     private bool _isToolbarExpanded;
+    private bool _hasLoadedWorkspace;
     private string? _currentRootPath;
     private ProjectInfo? _selectedProject;
     private ArchitectureNode? _selectedListedNode;
@@ -307,6 +308,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public string ToolbarToggleText => IsToolbarExpanded ? L("ToolbarLess") : L("ToolbarMore");
 
+    public bool HasLoadedWorkspace
+    {
+        get => _hasLoadedWorkspace;
+        set => SetProperty(ref _hasLoadedWorkspace, value);
+    }
+
     public string PerformanceStatusText
     {
         get => _performanceStatusText;
@@ -504,6 +511,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         UpdateTopFileLineRanking();
         UpdateGraphStatus();
         ApplyMetricsOverlay();
+        HasLoadedWorkspace = true;
     }
 
     public void ClearSymbolExplorerUi()

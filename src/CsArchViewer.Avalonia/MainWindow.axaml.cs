@@ -8,6 +8,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -264,6 +265,7 @@ public partial class MainWindow : Window
     private async Task LoadAsync(string rootPath)
     {
         ViewModel.CurrentRootPath = rootPath;
+        ViewModel.HasLoadedWorkspace = false;
         _appLogService.Info("Workspace", $"Loading workspace: {rootPath}");
         _fileChangeTracker.Start(rootPath);
         QueueAnalysis(rootPath, null, AnalysisPriority.High, ViewModel.L("RunningFullAnalysis"));
@@ -357,7 +359,7 @@ public partial class MainWindow : Window
 
     private void CompactRelated_OnClick(object? sender, RoutedEventArgs e)
     {
-        _preCompactNodePositions = ViewModel.Graph.Nodes.ToDictionary(
+        _preCompactNodePositions ??= ViewModel.Graph.Nodes.ToDictionary(
             node => node.Id,
             node => (node.X, node.Y),
             StringComparer.OrdinalIgnoreCase);
@@ -388,19 +390,24 @@ public partial class MainWindow : Window
 
             if (neighborIds.Count > 0)
             {
-                const double nodeWidth = 180d;
                 const double nodeHeight = 72d;
-                const double targetRadius = 240d;
-                var anchorCenter = new Point(anchor.X + (nodeWidth / 2d), anchor.Y + (nodeHeight / 2d));
+                var anchorWidth = GetCompactNodeWidth(anchor);
+                var maxNeighborWidth = neighborIds
+                    .Select(id => GetCompactNodeWidth(visibleNodes[id]))
+                    .DefaultIfEmpty(180d)
+                    .Max();
+                var targetRadius = Math.Max(240d, (anchorWidth + maxNeighborWidth) * 0.7d);
+                var anchorCenter = new Point(anchor.X + (anchorWidth / 2d), anchor.Y + (nodeHeight / 2d));
                 var angleStep = (Math.PI * 2d) / Math.Max(1, neighborIds.Count);
                 for (var i = 0; i < neighborIds.Count; i++)
                 {
                     var neighbor = visibleNodes[neighborIds[i]];
+                    var neighborWidth = GetCompactNodeWidth(neighbor);
                     var angle = angleStep * i;
                     var targetCenter = new Point(
                         anchorCenter.X + (Math.Cos(angle) * targetRadius),
                         anchorCenter.Y + (Math.Sin(angle) * targetRadius));
-                    neighbor.X = targetCenter.X - (nodeWidth / 2d);
+                    neighbor.X = targetCenter.X - (neighborWidth / 2d);
                     neighbor.Y = targetCenter.Y - (nodeHeight / 2d);
                 }
             }
@@ -457,6 +464,19 @@ public partial class MainWindow : Window
         ViewModel.Graph.Touch();
         GraphViewControl.FitToScreen();
         ViewModel.Status = "View reset to defaults.";
+    }
+
+    private static double GetCompactNodeWidth(ArchitectureNode node)
+    {
+        var text = new FormattedText(
+            node.Name ?? string.Empty,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            14,
+            Brushes.White);
+        var measuredWidth = text.Width + 26d;
+        return Math.Clamp(measuredWidth, 180d, 420d);
     }
 
     private void QueueAnalysis(

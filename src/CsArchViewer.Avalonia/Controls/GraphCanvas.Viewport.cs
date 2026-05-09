@@ -170,12 +170,25 @@ public sealed partial class GraphCanvas
     private static Rect GetNodeBounds(ArchitectureNode node)
     {
         var scale = GetNodeOverlayScale(node);
-        return new Rect(node.X, node.Y, NodeWidth * scale, NodeHeight * scale);
+        return new Rect(node.X, node.Y, GetNodeBaseWidth(node) * scale, NodeHeight * scale);
     }
 
     private static Point GetNodeCenter(ArchitectureNode node)
     {
         var bounds = GetNodeBounds(node);
         return new Point(bounds.X + (bounds.Width / 2d), bounds.Y + (bounds.Height / 2d));
+    }
+
+    private static double GetNodeBaseWidth(ArchitectureNode node)
+    {
+        var text = new FormattedText(
+            node.Name ?? string.Empty,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            14,
+            Brushes.White);
+        var measuredWidth = text.Width + 26d;
+        return Math.Clamp(measuredWidth, MinNodeWidth, MaxNodeWidth);
     }
 }
