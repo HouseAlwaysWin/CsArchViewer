@@ -159,36 +159,15 @@ public sealed partial class GraphCanvas
         return new Point((point.X - _panOffset.X) / _zoom, (point.Y - _panOffset.Y) / _zoom);
     }
 
-    private static double GetNodeOverlayScale(ArchitectureNode node)
-    {
-        return node.Metadata.TryGetValue("OverlayScale", out var rawScale) &&
-               double.TryParse(rawScale, out var parsedScale)
-            ? Math.Clamp(parsedScale, 0.7, 2.0)
-            : 1.0;
-    }
-
     private static Rect GetNodeBounds(ArchitectureNode node)
     {
-        var scale = GetNodeOverlayScale(node);
-        return new Rect(node.X, node.Y, GetNodeBaseWidth(node) * scale, NodeHeight * scale);
+        var size = GraphNodeLayoutMetrics.MeasureLogicalSize(node);
+        return new Rect(node.X, node.Y, size.Width, size.Height);
     }
 
     private static Point GetNodeCenter(ArchitectureNode node)
     {
         var bounds = GetNodeBounds(node);
         return new Point(bounds.X + (bounds.Width / 2d), bounds.Y + (bounds.Height / 2d));
-    }
-
-    private static double GetNodeBaseWidth(ArchitectureNode node)
-    {
-        var text = new FormattedText(
-            node.Name ?? string.Empty,
-            System.Globalization.CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            Typeface.Default,
-            14,
-            Brushes.White);
-        var measuredWidth = text.Width + 26d;
-        return Math.Clamp(measuredWidth, MinNodeWidth, MaxNodeWidth);
     }
 }

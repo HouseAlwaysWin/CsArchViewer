@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CsArchViewer.Avalonia.Controls;
 using CsArchViewer.Core.Models;
 
 namespace CsArchViewer.Avalonia.ViewModels;
@@ -258,8 +259,6 @@ public sealed partial class MainWindowViewModel
 
     private static void ResolveNodeOverlaps(ArchitectureGraph graph, bool keepCurrentOrder)
     {
-        const double nodeWidth = 180d;
-        const double nodeHeight = 72d;
         const double horizontalGap = 26d;
         const double verticalGap = 24d;
 
@@ -271,7 +270,8 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        for (var pass = 0; pass < 8; pass++)
+        // Wider labels need larger separation; align with GraphCanvas / GraphNodeLayoutMetrics.
+        for (var pass = 0; pass < 16; pass++)
         {
             var changed = false;
             for (var i = 0; i < nodes.Count; i++)
@@ -280,14 +280,18 @@ public sealed partial class MainWindowViewModel
                 {
                     var a = nodes[i];
                     var b = nodes[j];
-                    var centerAX = a.X + (nodeWidth / 2d);
-                    var centerAY = a.Y + (nodeHeight / 2d);
-                    var centerBX = b.X + (nodeWidth / 2d);
-                    var centerBY = b.Y + (nodeHeight / 2d);
+                    var sizeA = GraphNodeLayoutMetrics.MeasureLogicalSize(a);
+                    var sizeB = GraphNodeLayoutMetrics.MeasureLogicalSize(b);
+                    var halfSpanX = (sizeA.Width + sizeB.Width) / 2d + horizontalGap;
+                    var halfSpanY = (sizeA.Height + sizeB.Height) / 2d + verticalGap;
+                    var centerAX = a.X + (sizeA.Width / 2d);
+                    var centerAY = a.Y + (sizeA.Height / 2d);
+                    var centerBX = b.X + (sizeB.Width / 2d);
+                    var centerBY = b.Y + (sizeB.Height / 2d);
                     var deltaX = centerBX - centerAX;
                     var deltaY = centerBY - centerAY;
-                    var overlapX = ((nodeWidth + horizontalGap) - Math.Abs(deltaX));
-                    var overlapY = ((nodeHeight + verticalGap) - Math.Abs(deltaY));
+                    var overlapX = halfSpanX - Math.Abs(deltaX);
+                    var overlapY = halfSpanY - Math.Abs(deltaY);
                     if (overlapX <= 0 || overlapY <= 0)
                     {
                         continue;

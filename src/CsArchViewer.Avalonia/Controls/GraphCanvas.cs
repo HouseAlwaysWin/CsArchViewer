@@ -38,10 +38,6 @@ public sealed partial class GraphCanvas : Control
     public static readonly StyledProperty<bool> ShowLineCountOnNodesProperty =
         AvaloniaProperty.Register<GraphCanvas, bool>(nameof(ShowLineCountOnNodes), false);
 
-    private const double MinNodeWidth = 180;
-    private const double MaxNodeWidth = 420;
-    private const double NodeHeight = 72;
-
     private Point _panOffset = new(0, 0);
     private double _zoom = 1.0;
     private bool _isPanning;
