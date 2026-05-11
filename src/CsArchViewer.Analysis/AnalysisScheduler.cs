@@ -1,3 +1,5 @@
+using System;
+
 namespace CsArchViewer.Analysis;
 
 public enum AnalysisPriority
@@ -37,9 +39,16 @@ public sealed class AnalysisScheduler : IDisposable
 
     private async Task ProcessAsync()
     {
-        while (!_cts.IsCancellationRequested)
+        while (true)
         {
-            await _signal.WaitAsync(_cts.Token);
+            try
+            {
+                await _signal.WaitAsync(_cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
 
             AnalysisWorkItem? item = null;
             lock (_queue)
@@ -58,7 +67,7 @@ public sealed class AnalysisScheduler : IDisposable
 
             try
             {
-                await item.Work(_cts.Token);
+                await item.Work(_cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -73,7 +82,8 @@ public sealed class AnalysisScheduler : IDisposable
         _signal.Release();
         try
         {
-            _worker.Wait(2000);
+            // Large solutions may need time to observe cancellation in Roslyn work items.
+            _worker.Wait(TimeSpan.FromMinutes(2));
         }
         catch
         {

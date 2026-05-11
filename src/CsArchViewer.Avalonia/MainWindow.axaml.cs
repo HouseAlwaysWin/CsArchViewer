@@ -7,9 +7,11 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -67,6 +69,7 @@ public partial class MainWindow : Window
 
     private MetricsSummary? _latestMetricsSummary;
     private CancellationTokenSource? _stateSaveCts;
+    private int _shutdownCleanupStarted;
     private bool _isRestoringWorkspaceState;
     private Dictionary<string, (double X, double Y)>? _preCompactNodePositions;
 
@@ -85,6 +88,81 @@ public partial class MainWindow : Window
         ApplyThemeVariant();
         UpdateExportButtonState();
         Opened += MainWindow_OnOpened;
+        Closing += MainWindow_OnClosing;
+    }
+
+    private async void MainWindow_OnClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (Interlocked.Exchange(ref _shutdownCleanupStarted, 1) != 0)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        Hide();
+
+        try
+        {
+            await PerformShutdownCleanupAsync().ConfigureAwait(true);
+        }
+        catch
+        {
+            // Ignore teardown failures; always shut down the desktop lifetime.
+        }
+        finally
+        {
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+        }
+    }
+
+    private async Task PerformShutdownCleanupAsync()
+    {
+        _stateSaveCts?.Cancel();
+        _stateSaveCts?.Dispose();
+        _stateSaveCts = null;
+
+        WorkspaceState? state = null;
+        try
+        {
+            state = ViewModel.ExportWorkspaceState();
+        }
+        catch
+        {
+            // Ignore snapshot failures during shutdown.
+        }
+
+        if (state is not null)
+        {
+            try
+            {
+                await _workspaceStatePersistenceService.SaveAsync(state).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Ignore persistence failures during shutdown.
+            }
+        }
+
+        await Task.Run(() =>
+        {
+            _fileChangeTracker.Dispose();
+            _analysisScheduler.Dispose();
+            _symbolIndexBuilder.Dispose();
+            _analyzer.Dispose();
+            _roslynSolutionLoader.Dispose();
+        }).ConfigureAwait(false);
+
+        try
+        {
+            UpdateHttpClient.Dispose();
+        }
+        catch
+        {
+            // HttpClient may already be disposed.
+        }
     }
 
     private void AttachV65Services()
@@ -781,27 +859,6 @@ public partial class MainWindow : Window
                 });
             }
         }, priority);
-    }
-
-    protected override void OnClosed(EventArgs e)
-    {
-        _stateSaveCts?.Cancel();
-        _stateSaveCts?.Dispose();
-        try
-        {
-            PersistWorkspaceStateAsync().GetAwaiter().GetResult();
-        }
-        catch
-        {
-            // Ignore persistence failures during shutdown.
-        }
-
-        _fileChangeTracker.Dispose();
-        _analysisScheduler.Dispose();
-        _symbolIndexBuilder.Dispose();
-        _analyzer.Dispose();
-        _roslynSolutionLoader.Dispose();
-        base.OnClosed(e);
     }
 
     private static HttpClient CreateUpdateHttpClient()
