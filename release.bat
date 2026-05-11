@@ -28,7 +28,17 @@ if errorlevel 1 (
   exit /b 1
 )
 
-pwsh -NoProfile -Command "if ('%VERSION_TAG%' -match '^v\d+\.\d+\.\d+$') { exit 0 } else { exit 1 }" >nul 2>nul
+set "PS_CMD=pwsh"
+where pwsh >nul 2>nul
+if errorlevel 1 set "PS_CMD=powershell"
+
+where %PS_CMD% >nul 2>nul
+if errorlevel 1 (
+  echo [release] ERROR: PowerShell not found ^(need pwsh or powershell in PATH^).
+  exit /b 1
+)
+
+%PS_CMD% -NoProfile -Command "if ('%VERSION_TAG%' -match '^v\d+\.\d+\.\d+$') { exit 0 } else { exit 1 }" >nul 2>nul
 if errorlevel 1 (
   echo [release] ERROR: invalid version format.
   echo [release] Expected format: vX.Y.Z ^(example: v1.2.3^)
