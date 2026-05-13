@@ -79,6 +79,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = new MainWindowViewModel();
+        _roslynSolutionLoader.DiagnosticLog = msg => _appLogService.Warning("MSBuild", msg);
         _analyzer = new DotNetProjectAnalyzer(_roslynSolutionLoader);
         _symbolIndexBuilder = new SymbolIndexBuilder(_roslynSolutionLoader);
         _incrementalEngine = new IncrementalAnalysisEngine(_analyzer);

@@ -13,7 +13,11 @@ public sealed class CsProjParser
         var targetFramework = projectElement
             .Descendants("TargetFramework")
             .Select(x => x.Value.Trim())
-            .FirstOrDefault();
+            .FirstOrDefault()
+            ?? projectElement
+                .Descendants("TargetFrameworks")
+                .Select(x => x.Value.Trim())
+                .FirstOrDefault();
 
         var outputType = projectElement
             .Descendants("OutputType")

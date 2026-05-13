@@ -10,6 +10,8 @@ public sealed class RoslynSolutionLoader : IDisposable
     private MSBuildWorkspace? _workspace;
     private string? _loadedRootPath;
 
+    public Action<string>? DiagnosticLog { get; set; }
+
     public async Task<Solution?> LoadAsync(string rootPath, CancellationToken cancellationToken = default)
     {
         return await LoadAsync(rootPath, forceReload: false, cancellationToken).ConfigureAwait(false);
@@ -43,6 +45,8 @@ public sealed class RoslynSolutionLoader : IDisposable
             _workspace = workspace;
             _loadedRootPath = normalizedRoot;
             workspace.SkipUnrecognizedProjects = true;
+            workspace.RegisterWorkspaceFailedHandler(e =>
+                DiagnosticLog?.Invoke($"[{e.Diagnostic.Kind}] {e.Diagnostic.Message}"));
 
             var solutionPath = Directory.EnumerateFiles(rootPath, "*.sln", SearchOption.AllDirectories)
                 .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
