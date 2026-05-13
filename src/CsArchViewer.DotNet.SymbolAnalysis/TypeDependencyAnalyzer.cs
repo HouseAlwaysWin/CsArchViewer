@@ -4,7 +4,7 @@ namespace CsArchViewer.DotNet.SymbolAnalysis;
 
 public sealed class TypeDependencyAnalyzer
 {
-    public ArchitectureGraph BuildGraph(IReadOnlyList<TypeDescriptor> types)
+    public ArchitectureGraph BuildGraph(IReadOnlyList<TypeDescriptor> types, bool includeUsesTypeEdges = true)
     {
         var graph = new ArchitectureGraph();
         var nodeByType = new Dictionary<string, ArchitectureNode>(StringComparer.Ordinal);
@@ -32,13 +32,18 @@ public sealed class TypeDependencyAnalyzer
             nodeByType[type.FullName] = node;
         }
 
+        AddExternalHierarchyNodes(types, nodeByType);
+
         graph.Nodes.AddRange(nodeByType.Values.OrderBy(node => node.FullPath, StringComparer.OrdinalIgnoreCase));
 
         foreach (var type in types)
         {
             AddEdges(type.FullName, type.BaseTypes, ArchitectureEdgeType.Inherits, "Inherits");
             AddEdges(type.FullName, type.Interfaces, ArchitectureEdgeType.Implements, "Implements");
-            AddEdges(type.FullName, type.ReferencedTypes, ArchitectureEdgeType.UsesType, "UsesType");
+            if (includeUsesTypeEdges)
+            {
+                AddEdges(type.FullName, type.ReferencedTypes, ArchitectureEdgeType.UsesType, "UsesType");
+            }
         }
 
         PopulateReferencedByMetadata(graph);
@@ -70,6 +75,87 @@ public sealed class TypeDependencyAnalyzer
                 });
             }
         }
+    }
+
+    private static void AddExternalHierarchyNodes(
+        IReadOnlyList<TypeDescriptor> types,
+        Dictionary<string, ArchitectureNode> nodeByType)
+    {
+        var interfaceTargets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var t in types)
+        {
+            foreach (var i in t.Interfaces)
+            {
+                interfaceTargets.Add(i);
+            }
+        }
+
+        foreach (var t in types)
+        {
+            foreach (var b in t.BaseTypes)
+            {
+                if (nodeByType.ContainsKey(b))
+                {
+                    continue;
+                }
+
+                nodeByType[b] = CreateExternalNode(b, asInterface: interfaceTargets.Contains(b));
+            }
+        }
+
+        foreach (var iface in interfaceTargets)
+        {
+            if (nodeByType.ContainsKey(iface))
+            {
+                continue;
+            }
+
+            nodeByType[iface] = CreateExternalNode(iface, asInterface: true);
+        }
+    }
+
+    private static ArchitectureNode CreateExternalNode(string fullName, bool asInterface)
+    {
+        var (ns, shortName) = SplitNamespaceAndShortName(fullName);
+        return new ArchitectureNode
+        {
+            Id = fullName,
+            Name = shortName,
+            Type = asInterface ? ArchitectureNodeType.Interface : ArchitectureNodeType.Type,
+            FullPath = fullName,
+            Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["FullTypeName"] = fullName,
+                ["Namespace"] = string.IsNullOrEmpty(ns) ? "(global)" : ns,
+                ["File"] = "(external)",
+                ["DefinitionScope"] = "External",
+                ["BaseType"] = "(unknown)",
+                ["ImplementedInterfaces"] = "(unknown)",
+                ["ReferencedTypes"] = "(unknown)",
+                ["ReferencedBy"] = "(none)"
+            }
+        };
+    }
+
+    private static (string Namespace, string ShortName) SplitNamespaceAndShortName(string fullName)
+    {
+        var s = fullName.StartsWith("global::", StringComparison.Ordinal)
+            ? fullName["global::".Length..]
+            : fullName;
+
+        var tick = s.IndexOf('`', StringComparison.Ordinal);
+        if (tick >= 0)
+        {
+            s = s[..tick];
+        }
+
+        var lastDot = s.LastIndexOf('.');
+        if (lastDot < 0)
+        {
+            return (string.Empty, s);
+        }
+
+        return (s[..lastDot], s[(lastDot + 1)..]);
     }
 
     private static ArchitectureNodeType MapNodeType(ArchitectureTypeKind kind)

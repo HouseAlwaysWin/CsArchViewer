@@ -5,6 +5,8 @@ namespace CsArchViewer.DotNet.SymbolAnalysis;
 
 public sealed class RoslynTypeAnalyzer
 {
+    private static readonly SymbolDisplayFormat TypeReferenceFormat = SymbolDisplayFormat.FullyQualifiedFormat;
+
     public async Task<IReadOnlyList<TypeDescriptor>> AnalyzeAsync(Solution solution, CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, TypeDescriptor>(StringComparer.Ordinal);
@@ -36,7 +38,7 @@ public sealed class RoslynTypeAnalyzer
                         continue;
                     }
 
-                    var typeId = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    var typeId = symbol.ToDisplayString(TypeReferenceFormat);
                     var typeKind = MapKind(symbol);
                     if (!results.TryGetValue(typeId, out var descriptor))
                     {
@@ -44,7 +46,7 @@ public sealed class RoslynTypeAnalyzer
                         {
                             Id = typeId,
                             Name = symbol.Name,
-                            FullName = symbol.ToDisplayString(),
+                            FullName = typeId,
                             Namespace = symbol.ContainingNamespace.ToDisplayString(),
                             FilePath = document.FilePath ?? string.Empty,
                             Kind = typeKind
@@ -53,9 +55,9 @@ public sealed class RoslynTypeAnalyzer
                     }
 
                     descriptor.BaseTypes.UnionWith(CollectBaseTypes(symbol));
-                    descriptor.Interfaces.UnionWith(symbol.Interfaces.Select(i => i.ToDisplayString()));
+                    descriptor.Interfaces.UnionWith(symbol.Interfaces.Select(i => i.ToDisplayString(TypeReferenceFormat)));
                     descriptor.ReferencedTypes.UnionWith(CollectReferencedTypes(symbol));
-                    descriptor.Attributes.UnionWith(symbol.GetAttributes().Select(a => a.AttributeClass?.ToDisplayString()).Where(v => !string.IsNullOrWhiteSpace(v))!);
+                    descriptor.Attributes.UnionWith(symbol.GetAttributes().Select(a => a.AttributeClass?.ToDisplayString(TypeReferenceFormat)).Where(v => !string.IsNullOrWhiteSpace(v))!);
                 }
             }
         }
@@ -77,16 +79,13 @@ public sealed class RoslynTypeAnalyzer
 
     private static IEnumerable<string> CollectBaseTypes(INamedTypeSymbol symbol)
     {
-        if (symbol.BaseType is null)
+        var baseType = symbol.BaseType;
+        if (baseType is null || baseType.SpecialType == SpecialType.System_Object)
         {
             yield break;
         }
 
-        var baseName = symbol.BaseType.ToDisplayString();
-        if (!string.Equals(baseName, "object", StringComparison.OrdinalIgnoreCase))
-        {
-            yield return baseName;
-        }
+        yield return baseType.ToDisplayString(TypeReferenceFormat);
     }
 
     private static IEnumerable<string> CollectReferencedTypes(INamedTypeSymbol symbol)
@@ -133,7 +132,7 @@ public sealed class RoslynTypeAnalyzer
             return;
         }
 
-        var display = symbol.ToDisplayString();
+        var display = symbol.ToDisplayString(TypeReferenceFormat);
         if (string.IsNullOrWhiteSpace(display))
         {
             return;

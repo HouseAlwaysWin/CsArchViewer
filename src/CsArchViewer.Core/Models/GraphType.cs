@@ -9,6 +9,7 @@ public enum GraphType
     NamespaceDependencies,
     ArchitectureViolations,
     TypeDependencies,
+    TypeInheritance,
     FileDependencies,
     DependencyMatrix
 }

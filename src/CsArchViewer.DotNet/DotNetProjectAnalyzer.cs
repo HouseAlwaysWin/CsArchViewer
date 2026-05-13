@@ -70,6 +70,7 @@ public sealed class DotNetProjectAnalyzer : IProjectAnalyzer, IDisposable
             graphs[GraphType.NamespaceDependencies] = new ArchitectureGraph();
             graphs[GraphType.ArchitectureViolations] = new ArchitectureGraph();
             graphs[GraphType.TypeDependencies] = new ArchitectureGraph();
+            graphs[GraphType.TypeInheritance] = new ArchitectureGraph();
             graphs[GraphType.FileDependencies] = new ArchitectureGraph();
             graphs[GraphType.DependencyMatrix] = new ArchitectureGraph();
         }

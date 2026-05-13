@@ -227,6 +227,7 @@ public sealed partial class MainWindowViewModel
             SelectedGraphType == GraphType.NamespaceDependencies ||
             SelectedGraphType == GraphType.ArchitectureViolations ||
             SelectedGraphType == GraphType.TypeDependencies ||
+            SelectedGraphType == GraphType.TypeInheritance ||
             SelectedGraphType == GraphType.FileDependencies ||
             SelectedGraphType == GraphType.DependencyMatrix)
         {

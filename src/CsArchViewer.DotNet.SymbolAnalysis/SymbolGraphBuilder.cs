@@ -16,7 +16,8 @@ public sealed class SymbolGraphBuilder
     {
         var output = new Dictionary<GraphType, ArchitectureGraph>();
         var types = await _typeAnalyzer.AnalyzeAsync(solution, cancellationToken);
-        output[GraphType.TypeDependencies] = _typeDependencyAnalyzer.BuildGraph(types);
+        output[GraphType.TypeDependencies] = _typeDependencyAnalyzer.BuildGraph(types, includeUsesTypeEdges: true);
+        output[GraphType.TypeInheritance] = _typeDependencyAnalyzer.BuildGraph(types, includeUsesTypeEdges: false);
         output[GraphType.FileDependencies] = _fileDependencyAnalyzer.BuildGraph(types);
         output[GraphType.DependencyMatrix] = _matrixBuilder.BuildProjectMatrixGraph(types);
         return output;

@@ -236,6 +236,12 @@ public sealed partial class GraphCanvas : Control
                     ? executableFill
                     : libraryFill
             };
+            if (node.Metadata.TryGetValue("DefinitionScope", out var defScope) &&
+                string.Equals(defScope, "External", StringComparison.OrdinalIgnoreCase) &&
+                baseFill is SolidColorBrush solid)
+            {
+                baseFill = new SolidColorBrush(Color.FromArgb(200, solid.Color.R, solid.Color.G, solid.Color.B));
+            }
             var fill = ReferenceEquals(node, SelectedNode) ? selectedFill : baseFill;
 
             context.FillRectangle(fill, rect, 8);

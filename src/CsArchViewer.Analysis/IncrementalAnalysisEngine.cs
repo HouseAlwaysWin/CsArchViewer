@@ -75,6 +75,7 @@ public sealed class IncrementalAnalysisEngine
                 GraphType.NamespaceDependencies,
                 GraphType.ArchitectureViolations,
                 GraphType.TypeDependencies,
+                GraphType.TypeInheritance,
                 GraphType.FileDependencies,
                 GraphType.DependencyMatrix
             ];

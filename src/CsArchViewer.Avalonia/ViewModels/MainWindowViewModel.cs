@@ -28,6 +28,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         GraphType.NamespaceDependencies,
         GraphType.ArchitectureViolations,
         GraphType.TypeDependencies,
+        GraphType.TypeInheritance,
         GraphType.FileDependencies,
         GraphType.DependencyMatrix
     ];
